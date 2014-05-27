@@ -48,7 +48,7 @@ class Scheduler(object):
             self.logger.debug('Scheduler job_loop found job: ' + str(job_dic))
             vms = job_dic.get('vms')
             test_vm = False
-            while not test_vm and not self.stop_flag.is_set():
+            while vms and not test_vm and not self.stop_flag.is_set():
                 test_vm = self.vm_pool.acquire(*vms)
                 time.sleep(1)
             if not self.stop_flag.is_set():
