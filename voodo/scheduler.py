@@ -8,8 +8,8 @@ from multiprocessing import Process
 import vm_mgmt
 import tasks
 
-class Scheduler(object):
 
+class Scheduler(object):
     def __init__(self, storage_gateway, vm_map, proxy):
         self.storage = storage_gateway
         self.loop_thread = None
@@ -23,7 +23,7 @@ class Scheduler(object):
         self.stop_flag.clear()
         self.loop_thread = threading.Thread(target=self.job_loop)
         self.loop_thread.start()
-      
+
     def stop(self):
         self.stop_flag.set()
         try:
@@ -34,10 +34,10 @@ class Scheduler(object):
         else:
             if self.loop_thread.is_alive():
                 self.logger.error("Scheduler.stop(): Unable to stop the schedulers analysis loop immediately.")
-            
+
     def job_loop(self):
         threads = []
-        self.logger.info('Scheduler begin job loop') 
+        self.logger.info('Scheduler begin job loop')
 
         while not self.stop_flag.is_set():
             job_dic = self.proxy.job.get_a_task()
@@ -63,21 +63,21 @@ class Scheduler(object):
                 job_dic['err_path'] = err
                 '''
                 self.logger.debug("Scheduler.job_loop creating task thread")
-                threads.append( threading.Thread(target=self.task_handle, args=(test_vm, task) ) )
-                self.proxy.job.begin_task( (job_dic['job_id'], job_dic['sample_id']) )
+                threads.append(threading.Thread(target=self.task_handle, args=(test_vm, task)))
+                self.proxy.job.begin_task((job_dic['job_id'], job_dic['sample_id']))
                 self.logger.debug("Scheduler.job_loop marked task as begun. Starting task thread")
                 threads[-1].start()
-        
+
         for thread in threads:
             self.logger.debug('Scheduler job loop joining thread: ' + str(thread))
             thread.join(1)
 
         self.logger.info('Scheduler completed job loop')
-          
+
     def task_handle(self, virt_dev, task):
         if task.proceed:
             self.logger.debug("Scheduler.task_handle creating task process")
-            task_child = Process(target=virt_dev.run_task, args = (task, ) )
+            task_child = Process(target=virt_dev.run_task, args=(task, ))
             self.logger.debug("Scheduler.task_handle starting process")
             task_child.start()
             task_child.join(90)
@@ -89,7 +89,7 @@ class Scheduler(object):
             task.log("Task error before process creation. Aborting")
         self.vm_pool.release(virt_dev.name)
 
-    
+
 '''
 if __name__ == '__main__':
     import vbox
