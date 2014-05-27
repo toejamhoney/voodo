@@ -1,4 +1,5 @@
 import os
+import shlex
 import subprocess
 
 import config
@@ -141,9 +142,10 @@ class VBoxDriver(object):
             return False
         vm_list = []
         for line in out.split('\n'):
+            line = shlex.split(line)
             if line:
-              vm_name = line.partition(' ')[0].strip('"')
-              vm_list.append(vm_name)
+                vm_name = line[0]
+                vm_list.append(vm_name)
         return vm_list
 
 if __name__ == '__main__':
