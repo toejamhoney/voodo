@@ -4,7 +4,7 @@ import subprocess
 import config
 import proc_mgmt
 import virt_dev
-import voodo_parser
+import v_parser
 
 
 root_cmd = '/usr/bin/VBoxManage'
@@ -15,7 +15,7 @@ class VBoxDriver(object):
     def __init__(self):
         self.proc_mgr = proc_mgmt.ProcMgr()
         self.vm_map = self.init_vm_map()
-        self.parser = voodo_parser.VBoxParser()
+        self.parser = v_parser.VBoxParser()
 
     def parse_arguments(self, line):
         return self.parser.parse_args(line)

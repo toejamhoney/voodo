@@ -113,7 +113,6 @@ class VoodoCLI(Cmd):
             except TypeError:
                 print 'Invalid command. No arguments found'
 
-
     # Parses cmd line input to pull out the method 
     def get_method(method_class, line):
         method_name, _, line_remainder = line.partition(' ')
@@ -204,7 +203,6 @@ class VoodoCLI(Cmd):
             print 'Empty jobs. Exiting'
             return
         self._do_job(job_dict)
-
 
     ##################################################################
     # ## Forked Methods:
@@ -310,7 +308,6 @@ class VoodoCLI(Cmd):
                 # self.vm_queue.put(job_dict.get('dest_vm'))
                 # if job_dict.get('dest_vm') not in self.vm_pool:
                 # self.vm_pool[job_dict.get('dest_vm')] = True
-                # TEST COMMENT 2
 
 
     ##################################################################
@@ -408,7 +405,7 @@ class VoodoCLI(Cmd):
         input_count = len(arg_list)
         method_args, defaults = self.get_required_args(method)
         minimum_arg_count = len(method_args) - len(defaults)
-        if input_count >= minimum_arg_count and input_count <= len(method_args):
+        if minimum_arg_count <= input_count <= len(method_args):
             result = True
         return result
 
@@ -462,7 +459,7 @@ class VoodoCLI(Cmd):
 
 if __name__ == '__main__':
     # Parse cmd line args
-    from voodo_parser import VoodoParser
+    from v_parser import VoodoParser
 
     main_parser = VoodoParser()
     args = main_parser.parse_args(sys.argv[1:])

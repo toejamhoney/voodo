@@ -3,7 +3,7 @@ from threading import RLock
 
 import virt_dev
 import proc_mgmt
-import voodo_parser
+import v_parser
 
 root_cmd = '/usr/bin/VBoxManage'
 cmds = { 'showvminfo'  : [ root_cmd, 'showvminfo', '', '--machinereadable' ],

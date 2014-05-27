@@ -6,7 +6,7 @@ from datetime import datetime
 
 # Voodo Modules
 import config
-import voodo_parser
+import v_parser
 
 class Jobber(object):
 
@@ -16,7 +16,7 @@ class Jobber(object):
         main_db = "'" + os.path.join(config.SETTINGS.get('DB_DIR'), 'voodo.sqlite') + "'"
         self.db_curr.execute('ATTACH DATABASE ' + main_db + ' AS main_db')
         self.db_conn.commit()
-        self.parser = voodo_parser.JobParser()
+        self.parser = v_parser.JobParser()
 
     def verify_params(self, params):
         if params:

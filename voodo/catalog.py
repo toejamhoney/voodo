@@ -5,7 +5,7 @@ import os
 import sqlite3
 
 import config
-import voodo_parser
+import v_parser
 
 
 # Voodo Modules
@@ -14,7 +14,7 @@ class Catalog(object):
     def __init__(self):
         self.db_conn = None
         self.db_curr = None
-        self.parser = voodo_parser.JobParser()
+        self.parser = v_parser.JobParser()
         self.db_dir = config.SETTINGS.get('DB_DIR')
         if not self.db_dir:
             print 'DB_DIR key not set in config.SETTINGS (config.py)'

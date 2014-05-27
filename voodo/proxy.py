@@ -4,7 +4,7 @@ import logging
 # Voodo Modules
 from config import RPC_SERVERS
 import clients
-import voodo_errors
+import v_errors
 
 class RPCProxy(object):
 
@@ -29,7 +29,7 @@ class RPCProxy(object):
         try:
             address = server.get('address')
         except AttributeError:
-            raise voodo_errors.VoodoException(str(server_name) + ': not found')
+            raise v_errors.VoodoException(str(server_name) + ': not found')
         else:
             if server.get('type') == 'job':
                 self.servers['job'] = RPCServer(address)
