@@ -1,0 +1,99 @@
+# Compiled Python Files
+*.pyc
+
+# Generated ISO files
+*.iso
+
+# Binary Files
+*.exe
+
+# Dynamic Conf files folder
+conf/*
+
+# Config file
+config.py
+
+# All txt files
+*.txt
+
+# TCP recv log file
+recv_log.txt
+
+##########################################################################
+# OSX
+##########################################################################
+.bash_backup
+.DS_Store
+.DS_Store?
+.AppleDouble
+.LSOverride
+Icon
+Icon?
+ehthumbs.db
+Thumbs.db
+*.tmp
+
+# Thumbnails
+._*
+
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+
+##########################################################################
+# XCode
+##########################################################################
+*.swp
+*.lock
+*~.nib
+DerivedData/
+build/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+Voodo.xcodeproj/
+
+##########################################################################
+# VIM
+##########################################################################
+*.s[a-w][a-z]
+*.un~
+Session.vim
+.netrwhist
+*~
+
+##########################################################################
+# Eclipse
+##########################################################################
+*.pydevproject
+.project
+.metadata
+bin/**
+tmp/**
+tmp/**/*
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.classpath
+.settings/
+.loadpath
+
+# External tool builders
+.externalToolBuilders/
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
+# CDT-specific
+.cproject
+
+# PDT-specific
+.buildpath
+
+##########################################################################
+# PyCharm
+##########################################################################
+.idea
