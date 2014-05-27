@@ -110,11 +110,11 @@ class VoodoCLI(Cmd):
         else:
             try:
                 obj(cmd_line)
-            except TypeError:
-                print 'Invalid command. No arguments found'
+            except TypeError as e:
+                print 'Invalid command. No arguments found',repr(e)
 
     # Parses cmd line input to pull out the method 
-    def get_method(method_class, line):
+    def get_method(self, method_class, line):
         method_name, _, line_remainder = line.partition(' ')
         try:
             method = getattr(method_class, method_name)
@@ -185,8 +185,12 @@ class VoodoCLI(Cmd):
 
     def catalog(self, line):
         method, line_remainder = self.get_method(self.cat, line)
-        arguments = line_remainder.split(' ')
-        self.call_method(method, arguments)
+        if line_remainder:
+            arguments = line_remainder.split(' ')
+            self.call_method(method, arguments)
+        else:
+            self.call_method(method)
+
 
     def sched(self, line):
         if line == 'start':
