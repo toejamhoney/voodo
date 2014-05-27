@@ -310,7 +310,7 @@ class VoodoCLI(Cmd):
                 # self.vm_queue.put(job_dict.get('dest_vm'))
                 # if job_dict.get('dest_vm') not in self.vm_pool:
                 # self.vm_pool[job_dict.get('dest_vm')] = True
-                # TEST COMMENT
+                # TEST COMMENT 2
 
 
     ##################################################################
