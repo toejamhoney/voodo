@@ -35,7 +35,7 @@ class VBoxMachine(VirtualDevice):
     root_cmd = '/usr/bin/VBoxManage'
 
     def __init__(self, name=''):
-        print 'Init VBoxMachine: ' + name
+        logging.debug('Init VBoxMachine: ' + name)
         address = config.GUESTS.get(name)
         if not address:
             print name + ' is not in config module. No address, port set.'
@@ -75,7 +75,7 @@ class VBoxMachine(VirtualDevice):
             self.reset()
             task.log("Reset")
         else:
-            task.log.info('Cannot determine machine network location')
+            task.log('Cannot determine machine network location')
 
     def ping_agent(self):
         method_target = proxy.RPCMethod(self.rpc_proxy, "echo")
