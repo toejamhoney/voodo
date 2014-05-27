@@ -1,0 +1,6 @@
+fork basic_tools.pin -t v5.dll -l -r -v xp00 xp01 xp02 xp03 xp04 xp05 xp06 xp07 xp08 xp09 -j baseline_B0 -i scripts/baseline_B.do
+fork basic_tools.pin -t v5.dll -l -r -v xp00 xp01 xp02 xp03 xp04 xp05 xp06 xp07 xp08 xp09 -j baseline_C0 -i scripts/baseline_C.do
+fork basic_tools.pin -t v5.dll -l -r -v xp00 xp01 xp02 xp03 xp04 xp05 xp06 xp07 xp08 xp09 -j baseline_D0 -i scripts/baseline_D.do
+fork basic_tools.pin -t v5.dll -l -r -v xp00 xp01 xp02 xp03 xp04 xp05 xp06 xp07 xp08 xp09 -j baseline_E0 -i scripts/baseline_E.do
+fork basic_tools.pin -t v5.dll -l -r -v xp00 xp01 xp02 xp03 xp04 xp05 xp06 xp07 xp08 xp09 -j baseline_F0 -i scripts/baseline_F.do
+fork basic_tools.pin -t v5.dll -l -r -v xp00 xp01 xp02 xp03 xp04 xp05 xp06 xp07 xp08 xp09 -j baseline_G0 -i scripts/baseline_G.do

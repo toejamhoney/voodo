@@ -1,0 +1,9 @@
+input /Volumes/Macintosh_HD_2/voodo_src/mal_code/90_uncontrol_malware_data/Zbot_control/bot001.exe
+input /Volumes/Macintosh_HD_2/voodo_src/mal_code/90_uncontrol_malware_data/Zbot_control/bot002.exe
+input /Volumes/Macintosh_HD_2/voodo_src/mal_code/90_uncontrol_malware_data/Zbot_control/bot003.exe
+input /Volumes/Macintosh_HD_2/voodo_src/mal_code/90_uncontrol_malware_data/Zbot_control/bot004.exe
+input /Volumes/Macintosh_HD_2/voodo_src/mal_code/90_uncontrol_malware_data/Zbot_control/bot005.exe
+input /Volumes/Macintosh_HD_2/voodo_src/mal_code/90_uncontrol_malware_data/Zbot_control/bot006.exe
+input /Volumes/Macintosh_HD_2/voodo_src/mal_code/90_uncontrol_malware_data/Zbot_control/bot007.exe
+input /Volumes/Macintosh_HD_2/voodo_src/mal_code/90_uncontrol_malware_data/Zbot_control/bot008.exe
+input /Volumes/Macintosh_HD_2/voodo_src/mal_code/90_uncontrol_malware_data/Zbot_control/bot009.exe

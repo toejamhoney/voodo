@@ -1,0 +1,2 @@
+input /Volumes/Macintosh_HD_2/voodo_src/mal_code/90_uncontrol_malware_data/StateActor/stuxnet/cc1db5360109de3b857654297d262ca1
+input /Volumes/Macintosh_HD_2/voodo_src/mal_code/90_uncontrol_malware_data/StateActor/stuxnet/f8153747bae8b4ae48837ee17172151e
