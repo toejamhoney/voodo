@@ -29,7 +29,9 @@ class Catalog(object):
             self.db_conn = sqlite3.connect(self.db_path)
         except ValueError:
             raise ValueError('Catalog does not have DB_DIR set in config.py')
-        self.db_curr = self.db_conn.cursor()
+        else:
+            self.db_conn.row_factory = sqlite3.Row
+            self.db_curr = self.db_conn.cursor()
 
     def disconn(self):
         self.db_conn.commit()
@@ -43,6 +45,14 @@ class Catalog(object):
       
     def find(self, sample_name):
         pass
+
+    def list(self):
+        self.connect()
+        self.db_curr.execute('SELECT * FROM sample_sets')
+        rows = self.db_curr.fetchall()
+        for row in rows:
+            print row['set_name'] + ': ' + row['set_path']
+        self.disconn()
       
     def remove(self, path):
         pass
@@ -53,9 +63,9 @@ class Catalog(object):
         if not os.path.isdir(path):
             print 'Path must be a directory'
             return
-        set_name = (path.rpartition('/')[2], )
+        set_name = path.rpartition('/')[2]
         try:
-            self.db_curr.execute('INSERT INTO sample_sets (set_name) VALUES (?)', set_name)
+            self.db_curr.execute('INSERT INTO sample_sets (set_name, set_path) VALUES (?, ?)', [set_name, path])
         except sqlite3.IntegrityError:
             print 'Set already exists by this name'
         else:
