@@ -80,7 +80,7 @@ class Scheduler(object):
             task_child = Process(target=virt_dev.run_task, args=(task, ))
             self.logger.debug("Scheduler.task_handle starting process")
             task_child.start()
-            task_child.join(90)
+            task_child.join(600)
             if task_child.is_alive():
                 task_child.terminate()
                 task_child.join(10)
