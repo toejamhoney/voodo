@@ -123,6 +123,7 @@ class VBoxMachine(VirtualDevice):
         self.snapshot(snap_name, desc, delete=True)
     
     def reset(self):
+        self.poweroff()
         self.restore()
         self.start()
 
