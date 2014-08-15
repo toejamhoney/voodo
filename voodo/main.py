@@ -54,15 +54,19 @@ class VoodoCLI(Cmd):
 
         # Initialize the VirtualBox manager
         self.vm_driver = vbox.VBoxDriver()
+
         # Initialize the Android Emulator mgr
         #self.emu_herder = emu.EmuHandler()
         self.emu_herder = None
+
         # Create queues used in forking
         self.job_queue = Queue.PriorityQueue()
         self.vm_queue = Queue.Queue()
+
         # List of VMs in queue to prevent duplicates, dict > set
         self.vm_pool = {}
         self.vm_pool_size = 0
+
         # List of processes
         self.children = []
         # List of jobs
@@ -79,9 +83,10 @@ class VoodoCLI(Cmd):
         # PERSISTENCE
         self.db_gateway = db_mgmt.DBGateway()
         # RPC PROXIES
-        self.rpc_proxy = proxy.RPCProxy('jobber')
+        #self.rpc_proxy = proxy.RPCProxy('jobber')
+        self.rpc_proxy = object
         # LIBRARY
-        self.cat = catalog.Catalog()
+        self.catalog = catalog.Catalog()
         # TASK SCHEDULER ENGINE
         self.scheduler = scheduler.Scheduler(self.db_gateway, self.vm_driver.get_vm_map(), self.rpc_proxy)
 
@@ -91,22 +96,10 @@ class VoodoCLI(Cmd):
     # Start method for all cli. Gets first argument == class/obj/method to call
     def default(self, line):
         obj_name, _, cmd_line = line.partition(' ')
-
         try:
             obj = getattr(self, obj_name)
-
-        except AttributeError:
-
-            if self.rpc_proxy.is_proxy(obj_name):
-                method_name, _, line_remainder = cmd_line.partition(' ')
-                rpc_server = self.rpc_proxy.get_proxy(obj_name)
-                rpc_method = rpc_server.get_method(method_name)
-                result = rpc_method(line_remainder)
-                print result
-
-            else:
-                print obj_name + ' not found'
-
+        except AttributeError as e:
+            sys.stderr.write("%s\n" % e)
         else:
             try:
                 obj(cmd_line)
@@ -146,9 +139,6 @@ class VoodoCLI(Cmd):
             traceback.print_exc()
 
     ##################################################################
-    # TODO: VBox and Android methods are basically the same except for the
-    # class that does the parsing. Need to combine these
-    ##################################################################
     # ## Android Emulator Methods:
 
     def android(self, line):
@@ -171,32 +161,30 @@ class VoodoCLI(Cmd):
         arguments = self.get_arguments(self.vm_driver, line_remainder)
         self.call_method(method, arguments)
 
-
-    ##################################################################
-    # Proxy Methods:
-
-    def proxy(self, line):
-        cmd, _, remainder = line.partition(' ')
-        if cmd == 'add':
-            self.rpc_proxy.register_server(remainder)
-
     ##################################################################
     # Library Methods:
+    
+    def cat(self, line):
+        self.catalog(line)
 
     def catalog(self, line):
-        method, line_remainder = self.get_method(self.cat, line)
+        method, line_remainder = self.get_method(self.catalog, line)
         if line_remainder:
             arguments = line_remainder.split(' ')
             self.call_method(method, arguments)
         else:
             self.call_method(method)
+   
 
+    ##################################################################
+    # Engine methods
 
     def sched(self, line):
         if line == 'start':
             self.scheduler.start()
         if line == 'stop':
             self.scheduler.stop()
+
 
     ##################################################################
     # ## Tool Methods:
@@ -207,6 +195,7 @@ class VoodoCLI(Cmd):
             print 'Empty jobs. Exiting'
             return
         self._do_job(job_dict)
+
 
     ##################################################################
     # ## Forked Methods:
@@ -439,6 +428,7 @@ class VoodoCLI(Cmd):
     ##################################################################
     # ## Static Methods: exit success at cmds quit and exit, or end of scripts
 
+    @staticmethod
     def emptyline(self):
         """
         Blank lines are NOPs
@@ -461,6 +451,13 @@ class VoodoCLI(Cmd):
 ##################################################################
 # ## Ye Olde Boilerplate
 
+def main(input_=None):
+    try:
+        VoodoCLI(stdin=input_).cmdloop()
+    except KeyboardInterrupt:
+        input_.close()
+        exit(0)
+
 if __name__ == '__main__':
     # Parse cmd line args
     from v_parser import VoodoParser
@@ -472,8 +469,7 @@ if __name__ == '__main__':
     try:
         debug_level = getattr(logging, args.get('debug').upper())
     except AttributeError:
-        print 'Invalid debug level: ' + args.get('debug')
-        print 'Options: critical, error, warning, or info'
+        sys.stderr.write('Invalid debug level: %s\nValid options: critical, error, warning, info\n' % args.get('debug'))
         sys.exit(1)
 
     # Create the base logger, and set it to handle all record levels
@@ -496,23 +492,10 @@ if __name__ == '__main__':
     logger.addHandler(console_logger)
 
     # Run the program from a script file
-    if args.get('input'):
-        try:
-            inpt = open(args.get('input'), 'rt')
-        except:
-            print "File not found: ", args.get('input')
-        else:
-            try:
-                VoodoCLI(stdin=inpt).cmdloop()
-            except KeyboardInterrupt:
-                inpt.close()
-                exit()
-            finally:
-                inpt.close()
-
-    # Run the interactive command loop
-    else:
-        try:
-            VoodoCLI().cmdloop()
-        except KeyboardInterrupt:
-            exit()
+    try:
+        input_ = open(args.get('input'), 'rt')
+    except IOError:
+        sys.stderr.write("No valid script file found. Running interactive\n")
+        input_ = None
+    finally:
+        main(input_)

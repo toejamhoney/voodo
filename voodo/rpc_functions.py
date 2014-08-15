@@ -123,8 +123,10 @@ class RPC(object):
         exe_path, exe_name = split_path_name(job_dict.get('exe'))
         result_name = log_name[:-4] + '_V5_msvc10_winxpsp3_' + exe_name
         kill_cmd = 'taskkill /f /t /IM ' + exe_name
+
         # Create results key
         job_dict['results'][result_name] = []
+
         check = make_dir('c:\\tmp')
         if check:
             job_dict['results']['launch_pin'].append(check)
@@ -142,8 +144,6 @@ class RPC(object):
         ret_val, stdout, stderr = handle_popen(kill_cmd, use_shell=False)
         job_dict['results'][result_name].extend([kill_cmd, ret_val, stdout, stderr])
         if stderr.startswith('ERROR'):
-            kill_cmd += ' /f'
-            ret_val, stdout, stderr = handle_popen(kill_cmd, use_shell=False)
             job_dict['results'][result_name].extend([kill_cmd, ret_val, stdout, stderr])
     
         # Send log file back with pscp

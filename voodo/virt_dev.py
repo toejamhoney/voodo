@@ -44,7 +44,8 @@ class VBoxMachine(VirtualDevice):
         else:
             address = address.get('address')
             port = config.SETTINGS.get('NEW_PORT')
-            self.rpc_proxy = clients.RPCClient( (address, port) )
+            #self.rpc_proxy = clients.RPCClient( (address, port) )
+            self.rpc_proxy = None
         super(VBoxMachine, self).__init__(name)
 
     def run_task(self, task):

@@ -77,9 +77,11 @@ class VBoxParser(BaseParser):
         self.parser.add_argument('-n', '--name', nargs=1, default='no_name', help='TODO')
         self.parser.add_argument('-r', '--restore', default=False, action='store_true', help='TODO')
         self.parser.add_argument('-v', '--machines', default=[], nargs='*', help='TODO')
-        self.parser.add_argument('-i', '--input', help='TODO')
+        self.parser.add_argument('-i', '--input', nargs='*', help='TODO')
 
     def post_parse(self, dic):
+        if isinstance(dic['input'], list):
+            dic['input'] = ' '.join(dic['input'])
         if isinstance(dic['name'], list):
             dic['name'] = ' '.join(dic['name'])
         return dic
