@@ -23,10 +23,11 @@ def get_backend(backend_type):
         return backend
 
 def main(addr, port, type_):
+    logging.info('main creating server on %s:%d' % (addr, port))
     server = SimpleXMLRPCServer((addr, port), allow_none=True)
     backend_type = get_backend(type_)
     if backend_type:
-        logging.info('main server bound %s:%d' % (addr, port))
+        logging.info('main registering and server')
         server.register_instance(backend_type())
         server.serve_forever()
     
@@ -37,11 +38,12 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.WARN)
 
     try:
-        addr = sys.argv[1]
+        addr = intern(sys.argv[1])
         port = int(sys.argv[2])
         type_ = intern(sys.argv[3])
     except IndexError:
-        addr = '0.0.0.0'
+        logging.info('No or invalid arguments found. Defaulting to defaults')
+        addr = intern('0.0.0.0')
         port = 4000
         type_ = intern('guest')
     except ValueError:
