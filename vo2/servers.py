@@ -3,24 +3,26 @@ import logging
 from importlib import import_module
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
-import config
+import vcfg
+
 
 def get_backend(backend_type):
     logging.info('get_backend type %s' % backend_type)
     backend = None
+    module, _, class_ = backend_type.rpartition('.')
     try:
-        backing_module = import_module(backend_type)
+        backing_module = import_module(module)
     except ImportError as e:
         logging.warn(e)
     else:
-        name = "%s%s" % (backend_type[0].upper(), backend_type[1:])
         try:
-            backend = getattr(backing_module, name)
+            backend = getattr(backing_module, class_)
         except AttributeError as e:
             logging.error(e)
     finally:
         logging.info('get_backend backing object %s' % backend)
         return backend
+
 
 def main(addr, port, type_):
     logging.info('main creating server on %s:%d' % (addr, port))

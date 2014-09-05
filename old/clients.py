@@ -105,7 +105,7 @@ class RPCClient(BaseClient):
             self.transmit(len_header)
             logging.debug('Sent header')
             self.transmit(json_data)
-            logging.debug('Sent data. Blocking for response...')
+            logging.debug('Sent samples. Blocking for response...')
             response = self.wait_response()
             logging.debug('Recvd response. Closing connection')
             self.close_conn()

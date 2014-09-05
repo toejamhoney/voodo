@@ -169,7 +169,7 @@ class VoodoCLI(Cmd):
       ### Forked Methods:
 
       # Forks the specified function to each member of the vm list, given
-      # one line of data from specified input file to each
+      # one line of samples from specified input file to each
       def do_fork(self, line):
           job_dict = self.parse_tool_line(line)
           if not job_dict:

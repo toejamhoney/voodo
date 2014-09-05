@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import Queue
 from cmd import Cmd
 from contextlib import contextmanager
@@ -15,18 +14,15 @@ import traceback
 
 sys.dont_write_bytecode = True
 
-import db_mgmt
-import catalog
-import config
-import proxy
-import scheduler
-import vbox
-import emu
+import vcfg
+from guests import gman
 
-######################################################################
+# #####################################################################
 # ## Command Module Class
 
+
 class VoodoCLI(Cmd):
+
     def __init__(self, stdin=None):
         # Initialize the command loop and take care of its settings.
         # If the stdin parameter is not the default, None, then clear the prompt
@@ -41,7 +37,7 @@ class VoodoCLI(Cmd):
         self.intro += '| | / /__  ___  ___/ /__  __/ / /_/ /\n'
         self.intro += '| |/ / _ \/ _ \/ _  / _ \/_  . __/_/\n'
         self.intro += '|___/\___/\___/\_,_/\___/_    __(_)\n'
-        self.intro += '     Version: 10e-8      /_/_/\n'
+        self.intro += '     Version: 10e-7      /_/_/\n'
         self.intro += '-------------------------------------\n'
 
         # If a file has been specified use the file rather than stdin, no prompt
@@ -52,11 +48,14 @@ class VoodoCLI(Cmd):
         else:
             self.prompt = 'voodo!# '
 
+        self.cfg = vcfg.Config()
+        self.gman = gman.GuestManager(self.cfg)
+
         # Initialize the VirtualBox manager
         self.vm_driver = vbox.VBoxDriver()
 
         # Initialize the Android Emulator mgr
-        #self.emu_herder = emu.EmuHandler()
+        # self.emu_herder = emu.EmuHandler()
         self.emu_herder = None
 
         # Create queues used in forking
@@ -83,14 +82,14 @@ class VoodoCLI(Cmd):
         # PERSISTENCE
         self.db_gateway = db_mgmt.DBGateway()
         # RPC PROXIES
-        #self.rpc_proxy = proxy.RPCProxy('jobber')
+        # self.rpc_proxy = proxy.RPCProxy('jobber')
         self.rpc_proxy = object
         # LIBRARY
         self.catalog = catalog.Catalog()
         # TASK SCHEDULER ENGINE
         self.scheduler = scheduler.Scheduler(self.db_gateway, self.vm_driver.get_vm_map(), self.rpc_proxy)
 
-    ############################################################################        
+    # ###########################################################################
     # Framework methods for calling anything else. Default handles every cmd
 
     # Start method for all cli. Gets first argument == class/obj/method to call
@@ -104,7 +103,7 @@ class VoodoCLI(Cmd):
             try:
                 obj(cmd_line)
             except TypeError as e:
-                print 'Invalid command. No arguments found',repr(e)
+                print 'Invalid command. No arguments found', repr(e)
 
     # Parses cmd line input to pull out the method 
     def get_method(self, method_class, line):
@@ -138,7 +137,7 @@ class VoodoCLI(Cmd):
         except Exception:
             traceback.print_exc()
 
-    ##################################################################
+    # #################################################################
     # ## Android Emulator Methods:
 
     def android(self, line):
@@ -163,7 +162,7 @@ class VoodoCLI(Cmd):
 
     ##################################################################
     # Library Methods:
-    
+
     def cat(self, line):
         self.catalog(line)
 
@@ -174,7 +173,7 @@ class VoodoCLI(Cmd):
             self.call_method(method, arguments)
         else:
             self.call_method(method)
-   
+
 
     ##################################################################
     # Engine methods
@@ -448,7 +447,7 @@ class VoodoCLI(Cmd):
         return True
 
 
-##################################################################
+# #################################################################
 # ## Ye Olde Boilerplate
 
 def main(input_=None):
@@ -457,6 +456,7 @@ def main(input_=None):
     except KeyboardInterrupt:
         input_.close()
         exit(0)
+
 
 if __name__ == '__main__':
     # Parse cmd line args

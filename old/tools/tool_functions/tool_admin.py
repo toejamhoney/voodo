@@ -27,7 +27,7 @@ def check_result(result):
     if not result:
       print 'Result error; nothing to diff'
     elif parsed_args_dict['analyzers']:
-      print 'Handing data off for comparison...'
+      print 'Handing samples off for comparison...'
       runDiff()
     else:
       print 'Complete. No errors detected.'
@@ -232,7 +232,7 @@ def write_to_log(job_dict):
                 file_out.write( unicode(str(data), 'utf_8') )
               except UnicodeEncodeError:
                 try:
-                  #data.decode('utf-8')
+                  #samples.decode('utf-8')
                   file_out.write(data.encode('UTF-8'))
                 except UnicodeEncodeError:
                   file_out.write(data)

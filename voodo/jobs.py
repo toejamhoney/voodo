@@ -48,7 +48,7 @@ class Jobber(object):
         if not row:
             raise sqlite3.IntegrityError('Invalid sample set name, ' + job.get('set'))
         if not row:
-            raise TypeError('Unable to JSON encode job data')
+            raise TypeError('Unable to JSON encode job samples')
 
         try:
             self.db_curr.execute('INSERT INTO main_db.jobs (job_name, set_id, dictionary) VALUES (?, ?, ?)',

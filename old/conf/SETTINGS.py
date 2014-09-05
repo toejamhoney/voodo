@@ -12,7 +12,7 @@
     "PIN_TOOLS_DIR": "c:\\pin-2.11-49306-msvc10-ia32_intel64-windows\\source\\tools\\SimpleExamples\\obj-ia32", 
     "LOG_DIR": "/Volumes/Macintosh_HD_2/voodo_logs", 
     "AVD_DIR": "/Users/honey/.android/avd", 
-    "ANDROID_WORKING_DIR": "/data/voodo", 
+    "ANDROID_WORKING_DIR": "/samples/voodo",
     "LOG_USER": "honey", 
     "PIN_DIR": "c:\\pin-2.11-49306-msvc10-ia32_intel64-windows\\source\\tools\\ManualExamples\\obj-ia32", 
     "MALWARE_DEST": "c:\\malware", 

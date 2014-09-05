@@ -110,7 +110,7 @@ class VoodoClient(object):
             counter += 1
             data = sock.recv(4096)
             if not data and log:
-              log.write('No data\n')
+              log.write('No samples\n')
               break
             elif log:
               log.write(data + '\n')

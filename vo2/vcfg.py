@@ -4,11 +4,10 @@ from ConfigParser import SafeConfigParser
 
 
 DEFAULT_CFG = './conf/myfirstconf.cfg'
-SECTIONS = ['general', 'database', 'network', 'guests']
 VMS = ['xp00', 'xp01', 'xp02', 'xp03', 'xp04']
 
-class Config(object):
 
+class Config(object):
     def __init__(self, path='', name=''):
         if name:
             cfg_file = os.path.join(path, name)
@@ -20,15 +19,21 @@ class Config(object):
             self.new_cfg()
 
     def new_cfg(self):
-        for section in SECTIONS:
-            setup = getattr(self, 's_%s' % section)
+        for section in sorted([s for s in dir(self) if s.startswith('s_')]):
+            setup = getattr(self, section)
             setup()
-        with open(DEFAULT_CFG, 'w') as new_cfg:
+        try:
+            new_cfg = open(DEFAULT_CFG, 'w')
+        except IOError as e:
+            sys.stderr.write("Unable to create new config file (%s): %s\n" % (DEFAULT_CFG, e))
+        else:
             print 'Creating new config file in CWD:', DEFAULT_CFG
             print 'Please double check the default values before running again:'
             print self
             self.parser.write(new_cfg)
-        sys.exit(0)
+            new_cfg.close()
+        finally:
+            sys.exit(0)
 
     def s_general(self):
         sec = 'general'
@@ -46,7 +51,14 @@ class Config(object):
 
     def s_network(self):
         sec = 'network'
-        self.parser.add_section('network')
+        self.parser.add_section(sec)
+        self.parser.set(sec, 'network', '10.0.0.0')
+        self.parser.set(sec, 'port', '4828')
+
+    def s_host(self):
+        sec = 'host'
+        self.parser.add_section(sec)
+        self.parser.set(sec, 'ipv4_addr', '10.3.3.1')
         self.parser.set(sec, 'port', '4828')
 
     def s_guests(self):
@@ -54,9 +66,8 @@ class Config(object):
         self.parser.add_section(sec)
         self.parser.set(sec, 'vms', ','.join(VMS))
         for vm in VMS:
-            self.parser.set(sec, '%s_os' % vm, 'win_xp_sp3')
-            self.parser.set(sec, '%s_ipv4' % vm, '10.0.0.0')
-            self.parser.set(sec, '%s_port' % vm, '4828')
+            self.parser.set(sec, vm, 'vbox,xpsp3,10.0.0.0,4828')
+            self.parser.set(sec, vm, 'emulator,android4.1,10.0.0.0,4828')
 
     def setting(self, section='', option=''):
         if not section:
@@ -66,7 +77,7 @@ class Config(object):
         elif self.parser.has_option(section, option):
             return self.parser.get(section, option)
         else:
-            return None
+            return ''
 
     def __str__(self):
         rv = ''
@@ -80,5 +91,5 @@ class Config(object):
 if __name__ == '__main__':
     cfg = Config()
     print(cfg)
-    print('-'*80)
+    print('-' * 80)
     print(cfg.setting(sys.argv[1], sys.argv[2]))

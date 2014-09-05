@@ -1,15 +1,15 @@
 import sys
 import logging
-from importlib import import_module
+import importlib
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
-import config
+import vcfg
 
 def get_backend(backend_type):
     logging.info('get_backend type %s' % backend_type)
     backend = None
     try:
-        backing_module = import_module(backend_type)
+        backing_module = importlib.import_module(backend_type)
     except ImportError as e:
         logging.warn(e)
     else:
