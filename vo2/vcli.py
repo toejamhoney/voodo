@@ -49,45 +49,20 @@ class VoodoCLI(Cmd):
             self.prompt = 'voodo!# '
 
         self.cfg = vcfg.Config()
+
+        # Guest Manager, gman, will handle all interactions with the guests
         self.gman = gman.GuestManager(self.cfg)
 
-        # Initialize the VirtualBox manager
-        self.vm_driver = vbox.VBoxDriver()
+        # Catalog, persistent storage of all samples and logs
 
-        # Initialize the Android Emulator mgr
-        # self.emu_herder = emu.EmuHandler()
-        self.emu_herder = None
 
-        # Create queues used in forking
-        self.job_queue = Queue.PriorityQueue()
-        self.vm_queue = Queue.Queue()
+        # Jobber, maintains and accesses a priority queue of jobs for the scheduler
 
-        # List of VMs in queue to prevent duplicates, dict > set
-        self.vm_pool = {}
-        self.vm_pool_size = 0
+        # Scheduler, handles the runtime analysis job distribution
 
-        # List of processes
-        self.children = []
-        # List of jobs
-        self.jobs = []
         # Pretty Printer for debugging
         self.printer = pprint.PrettyPrinter(indent=4)
-        # STDOUT lock
-        self.stdout_lock = threading.Lock()
-        # self.job_server = servers.Voodo_Server( ('127.0.0.1', 4829), servers.JobRequestHandler)
-        # child = multiprocessing.Process(target=self.job_server.serve_forever)
-        # child.start()
 
-        # IN DEV 
-        # PERSISTENCE
-        self.db_gateway = db_mgmt.DBGateway()
-        # RPC PROXIES
-        # self.rpc_proxy = proxy.RPCProxy('jobber')
-        self.rpc_proxy = object
-        # LIBRARY
-        self.catalog = catalog.Catalog()
-        # TASK SCHEDULER ENGINE
-        self.scheduler = scheduler.Scheduler(self.db_gateway, self.vm_driver.get_vm_map(), self.rpc_proxy)
 
     # ###########################################################################
     # Framework methods for calling anything else. Default handles every cmd

@@ -42,7 +42,7 @@ class Config(object):
     def s_database(self):
         sec = 'database'
         self.parser.add_section(sec)
-        self.parser.set(sec, 'path', os.getcwd())
+        self.parser.set(sec, 'path', os.path.join(os.getcwd(), 'storage', 'db'))
         self.parser.set(sec, 'user', '')
         self.parser.set(sec, 'pw', '')
         self.parser.set(sec, 'job', 'vo2_jobs.sqlite')
