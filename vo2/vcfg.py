@@ -2,21 +2,19 @@ import os
 import sys
 from ConfigParser import SafeConfigParser
 
-
-DEFAULT_CFG = './conf/myfirstconf.cfg'
+CFG_PATH = 'conf'
+DEFAULT_CFG = 'myfirstconf.cfg'
 VMS = ['xp00', 'xp01', 'xp02', 'xp03', 'xp04']
 
 
 class Config(object):
-    def __init__(self, path='', name=''):
+    def __init__(self, name=''):
         if name:
-            cfg_file = os.path.join(path, name)
+            cfg_file = os.path.join(CFG_PATH, name)
         else:
-            cfg_file = os.path.join(path, DEFAULT_CFG)
+            cfg_file = os.path.join(CFG_PATH, DEFAULT_CFG)
         self.parser = SafeConfigParser()
-        if not self.parser.read(cfg_file):
-            print 'No configuration file found:', cfg_file
-            self.new_cfg()
+        self.parsed = self.parser.read(cfg_file)
 
     def new_cfg(self):
         for section in sorted([s for s in dir(self) if s.startswith('s_')]):

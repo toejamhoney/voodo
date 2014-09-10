@@ -115,30 +115,6 @@ class Jobber(object):
         self.db_conn.commit()
 
 
-class Job(object):
-    def __init__(self, job_dic):
-        self.parameters = job_dic
-        self.priority = self.parameters.pop('priority')
-        self.job = self.parameters.get('job')
-        self.set('log_path', self.parameters.get('job'))
-        if self.parameters.get('before'):
-            self.set('log_path', os.path.join(self.parameters.get('log_path'), 'before'))
-
-    def complete(self):
-        pass
-
-    def set(self, key, value):
-        self.parameters[key] = value
-
-    def get(self, key):
-        return self.parameters.get(key)
-
-    def to_JSON(self):
-        return json.dumps(self.parameters)
-
-    def __str__(self):
-        return str(self.parameters)
-
 
 class JobParser(BaseParser):
     def __init__(self):
