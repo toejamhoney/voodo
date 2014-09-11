@@ -157,7 +157,7 @@ class EmuHandler(object):
 
         Keyword Arguments:
         args['avd'] -- name (without .avd) passed in from CLI
-        args['reset'] -- boolean value, starts emulator with wipe-samples, resetting emu to stock
+        args['reset'] -- boolean value, starts emulator with wipe-catalog, resetting emu to stock
 
         """
         emu = self.get_avd(args['avd'])
@@ -189,7 +189,7 @@ class EmuHandler(object):
         """Restore the Emu to a stock state
 
         Removes the userdata-qemu.img file; this will cause the emulator to copy over a new
-        version of the stock userdata.img on the next start. Same as the emulator -wipe-samples flag.
+        version of the stock userdata.img on the next start. Same as the emulator -wipe-catalog flag.
 
         Keyword Arguments:
         args['avd'] -- name (without .avd) passed in from CLI
@@ -442,7 +442,7 @@ class Emu(object):
         self.running = True
         # Subprocess prefers lists when not using the shell
         if reset:
-            seq = [ 'emulator', '-partition-size', '512', '-avd', self.avd_name, '-gpu', 'on', '-wipe-samples' ]
+            seq = [ 'emulator', '-partition-size', '512', '-avd', self.avd_name, '-gpu', 'on', '-wipe-catalog' ]
         else:
             seq = [ 'emulator', '-partition-size', '512', '-avd', self.avd_name, '-gpu', 'on' ]
         self.process = Popen(seq, stdout=PIPE, stderr=PIPE)
@@ -457,7 +457,7 @@ class Emu(object):
     def create_working_dir(self):
         path = config.SETTINGS.get('ANDROID_WORKING_DIR')
         if not path:
-            path = '/samples/voodo'
+            path = '/catalog/voodo'
         cmd = "shell mkdir " + path
         self.adb_command(cmd, verbose=True)
 

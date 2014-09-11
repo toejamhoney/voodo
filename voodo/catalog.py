@@ -80,7 +80,7 @@ class Catalog(object):
             for f in files:
                 samples.append( (os.path.join(root, f), f, set_id) )
             break
-        self.db_curr.executemany('INSERT OR REPLACE INTO samples (path, name, set_id) VALUES (?, ?, ?)', samples)
+        self.db_curr.executemany('INSERT OR REPLACE INTO catalog (path, name, set_id) VALUES (?, ?, ?)', samples)
 
     def __str__(self):
         return str(self.db_path)

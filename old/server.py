@@ -86,7 +86,7 @@ class request_handler(SocketServer.BaseRequestHandler):
           self.send_return_value(result)
           print 'End Handle()'
 
-      # Receives all samples on a socket until _END_OF_LINE string is encountered,
+      # Receives all catalog on a socket until _END_OF_LINE string is encountered,
       # returns string without _END_OF_LINE
       def recv_to_EOL(self, sock=None):
           print 'Recv_to_EOL() entry point... ',
@@ -114,7 +114,7 @@ class request_handler(SocketServer.BaseRequestHandler):
                 result = result[:-12]
                 break
             else:
-              #result += samples[:samples.find('_END_OF_LINE')]
+              #result += catalog[:catalog.find('_END_OF_LINE')]
               result += data[:-12]
               break
           print 'End of line received'
@@ -169,7 +169,7 @@ class request_handler(SocketServer.BaseRequestHandler):
           if job_dict.get('payload'):
             job_dict['payload'] = base64.b64encode(job_dict['payload'])
           json_data = json.dumps(job_dict)
-          print '   JSON samples constructed'
+          print '   JSON catalog constructed'
           sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
           sock.settimeout(60)
           print '   New socket made'
@@ -185,9 +185,9 @@ class request_handler(SocketServer.BaseRequestHandler):
               return False
             else:
               return False
-          print '   Sending samples'
+          print '   Sending catalog'
           sock.sendall(json_data + '_END_OF_LINE')
-          print '   Trying to receive samples'
+          print '   Trying to receive catalog'
           result = self.recv_to_EOL(sock)
           if not result:
             result = json.dumps({ 'results': { 'gw_forward' : ['', 'Gateway forwarding receive response timeout'] } })

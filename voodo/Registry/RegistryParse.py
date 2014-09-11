@@ -97,8 +97,8 @@ class ParseException(RegistryException):
 
 class UnknownTypeException(RegistryException):
     """
-    An exception to be raised when an unknown samples type is encountered.
-    Supported samples types current consist of
+    An exception to be raised when an unknown catalog type is encountered.
+    Supported catalog types current consist of
      - RegSZ
      - RegExpandSZ
      - RegBin
@@ -281,8 +281,8 @@ class REGFBlock(RegistryBlock):
 
 class HBINCell(RegistryBlock):
     """
-    HBIN samples cell. An HBINBlock is continuously filled with HBINCell structures.
-    The general structure is the length of the block, followed by a blob of samples.
+    HBIN catalog cell. An HBINBlock is continuously filled with HBINCell structures.
+    The general structure is the length of the block, followed by a blob of catalog.
     """
     def __init__(self, buf, offset, parent):
         """
@@ -337,19 +337,19 @@ class HBINCell(RegistryBlock):
 
     def data_offset(self):
         """
-        Get the absolute offset of the samples block of this HBINCell.
+        Get the absolute offset of the catalog block of this HBINCell.
         """
         return self._offset + 0x4
 
     def raw_data(self):
         """
-        Get the raw samples from the buffer contained by this HBINCell.
+        Get the raw catalog from the buffer contained by this HBINCell.
         """
         return self._buf[self.data_offset():self.data_offset() + self.size()]
 
     def data_id(self):
         """
-        Get the ID string of the samples block of this HBINCell.
+        Get the ID string of the catalog block of this HBINCell.
         """
         return self.unpack_string(0x4, 2)
 
@@ -422,7 +422,7 @@ class Record(RegistryBlock):
 
 class DataRecord(Record):
     """
-    A DataRecord is a HBINCell that does not contain any further structural samples, but
+    A DataRecord is a HBINCell that does not contain any further structural catalog, but
     may contain, for example, the values pointed to by a VKRecord.
     """
     def __init__(self, buf, offset, parent):
@@ -441,7 +441,7 @@ class DataRecord(Record):
 
 class DBIndirectBlock(Record):
     """
-    The DBIndirect block is a list of offsets to DataRecords with samples
+    The DBIndirect block is a list of offsets to DataRecords with catalog
     size up to 0x3fd8.
     """
     def __init__(self, buf, offset, parent):
@@ -459,7 +459,7 @@ class DBIndirectBlock(Record):
 
     def large_data(self, length):
         """
-        Get the samples pointed to by the indirect block. It may be large.
+        Get the catalog pointed to by the indirect block. It may be large.
         Return a byte array.
         """
         b = bytearray()
@@ -475,7 +475,7 @@ class DBIndirectBlock(Record):
 
 class DBRecord(Record):
     """
-    A DBRecord is a large samples block, which is not thoroughly documented.
+    A DBRecord is a large catalog block, which is not thoroughly documented.
     Its similar to an inode in the Ext file systems.
     """
     def __init__(self, buf, offset, parent):
@@ -497,7 +497,7 @@ class DBRecord(Record):
 
     def large_data(self, length):
         """
-        Get the samples described by the DBRecord. It may be large.
+        Get the catalog described by the DBRecord. It may be large.
         Return a byte array.
         """
         off = self.abs_offset_from_hbin_offset(self.unpack_dword(0x4))
@@ -507,8 +507,8 @@ class DBRecord(Record):
 
 class VKRecord(Record):
     """
-    The VKRecord holds one name-value pair.  The samples may be one many types,
-    including strings, integers, and binary samples.
+    The VKRecord holds one name-value pair.  The catalog may be one many types,
+    including strings, integers, and binary catalog.
     """
     def __init__(self, buf, offset, parent):
         """
@@ -527,7 +527,7 @@ class VKRecord(Record):
 
     def data_type_str(self):
         """
-        Get the value samples's type as a string
+        Get the value catalog's type as a string
         """
         data_type = self.data_type()
         if data_type == RegSZ:
@@ -612,19 +612,19 @@ class VKRecord(Record):
 
     def data_type(self):
         """
-        Get the samples type of this value samples as an unsigned integer.
+        Get the catalog type of this value catalog as an unsigned integer.
         """
         return self.unpack_dword(0xC)
 
     def data_length(self):
         """
-        Get the length of this value samples.
+        Get the length of this value catalog.
         """
         return self.unpack_dword(0x4)
 
     def data_offset(self):
         """
-        Get the offset to the raw samples associated with this value.
+        Get the offset to the raw catalog associated with this value.
         """
         if self.data_length() < 5 or self.data_length() >= 0x80000000:
             return self.absolute_offset(0x8)
@@ -633,24 +633,24 @@ class VKRecord(Record):
 
     def data(self):
         """
-        Get the samples.  This method will return various types based on the samples type.
+        Get the catalog.  This method will return various types based on the catalog type.
 
         RegSZ:
-          Return a string containing the samples, doing the best we can to convert it
+          Return a string containing the catalog, doing the best we can to convert it
           to ASCII or UNICODE.
         RegExpandSZ:
-          Return a string containing the samples, doing the best we can to convert it
+          Return a string containing the catalog, doing the best we can to convert it
           to ASCII or UNICODE. The special variables are not expanded.
         RegMultiSZ:
           Return a list of strings.
         RegNone:
           See RegBin
         RegDword:
-          Return an unsigned integer containing the samples.
+          Return an unsigned integer containing the catalog.
         RegQword:
-          Return an unsigned integer containing the samples.
+          Return an unsigned integer containing the catalog.
         RegBin:
-          Return a sequence of bytes containing the binary samples.
+          Return a sequence of bytes containing the binary catalog.
         RegBigEndian:
           Not currently supported. TODO.
         RegLink:
@@ -668,7 +668,7 @@ class VKRecord(Record):
 
         if data_type == RegSZ or data_type == RegExpandSZ:
             if data_length >= 0x80000000:
-                # samples is contained in the data_offset field
+                # catalog is contained in the data_offset field
                 s = struct.unpack_from("<%ds" % (4), self._buf, data_offset)[0]
             elif 0x3fd8 < data_length < 0x80000000:
                 d = HBINCell(self._buf, data_offset, self)

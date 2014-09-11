@@ -1,9 +1,14 @@
 import os
+from time import sleep
 
 
-def run(name, path):
-    print('Run: %s\n' % os.path.join(path, name))
-    return name
+def run(task):
+    """
+    :type task: vo2.work.task.Task
+    :param task:
+    :return:
+    """
+    task.find_vm()
 
 
 def callback(arg):

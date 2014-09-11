@@ -1,6 +1,8 @@
 import sys
 from importlib import import_module
 
+from catalog.samples import Sample
+
 
 class Job(object):
 

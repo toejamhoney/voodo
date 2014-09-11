@@ -48,7 +48,7 @@ class Jobber(object):
         if not row:
             raise sqlite3.IntegrityError('Invalid sample set name, ' + job.get('set'))
         if not row:
-            raise TypeError('Unable to JSON encode job samples')
+            raise TypeError('Unable to JSON encode job catalog')
 
         try:
             self.db_curr.execute('INSERT INTO main_db.jobs (job_name, set_id, dictionary) VALUES (?, ?, ?)',
@@ -57,7 +57,7 @@ class Jobber(object):
             job_id = self.db_curr.lastrowid
 
             self.db_curr.execute(
-                'CREATE TABLE job_{0} AS SELECT * FROM main_db.samples WHERE set_id = {1}'.format(str(job_id),
+                'CREATE TABLE job_{0} AS SELECT * FROM main_db.catalog WHERE set_id = {1}'.format(str(job_id),
                                                                                                   str(set_id)))
             self.db_curr.execute(
                 'CREATE INDEX idx_{0} ON job_{1}(finished_at, state, sample_id, path)'.format(str(job_id), str(job_id)))

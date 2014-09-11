@@ -72,7 +72,7 @@ if __name__ == '__main__':
     for sample in missed:
         print sample
     print '----------------------------------------------------------------'
-    print 'Total samples given:',num_samples
+    print 'Total catalog given:',num_samples
     print 'Runs started:',num_trials
     print 'Results gathered:',num_results
     print 'Completed runs:',completion

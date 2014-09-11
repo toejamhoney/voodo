@@ -17,6 +17,9 @@ class GuestManager(object):
         for vm in self.vm_map:
             self.vm_map[vm] = factory.make(vm)
 
+    def find_vm(self, names):
+        return self.pool.acquire(names, block=True, timeout=180)
+
 
 class VmFactory(object):
 
@@ -37,4 +40,4 @@ class VmFactory(object):
             return None
         else:
             name, addr, port = cfgvm.split(',')
-            return gmodule.HostTool(name, addr, port)
+            return gmodule.VirtualMachine(name, addr, port)

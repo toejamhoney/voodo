@@ -52,4 +52,4 @@ class CatalogMapper(object):
 
         self.db_curr.execute('INSERT INTO sample_sets (set_name, set_path) VALUES (?, ?)', [set_name, path])
 
-        self.db_curr.executemany('INSERT OR REPLACE INTO samples (path, name, set_id) VALUES (?, ?, ?)', samples)
+        self.db_curr.executemany('INSERT OR REPLACE INTO catalog (path, name, set_id) VALUES (?, ?, ?)', samples)

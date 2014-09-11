@@ -5,6 +5,7 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 import config
 
+
 def get_backend(backend_type):
     logging.info('get_backend type %s' % backend_type)
     backend = None
