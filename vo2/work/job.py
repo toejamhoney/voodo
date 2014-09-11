@@ -1,7 +1,6 @@
+import os
 import sys
 from importlib import import_module
-
-from catalog.samples import Sample
 
 
 class Job(object):
@@ -10,6 +9,20 @@ class Job(object):
         self.jobs = job_scandir
         self.cfg = job_cfg
         self.tool = None
+
+    def setup(self):
+        rv = self.import_tool()
+        if not rv:
+            return False
+        try:
+            os.makedirs(self.cfg.setting('job', 'log'))
+            os.makedirs(self.cfg.setting('job', 'hostlogdir'))
+        except OSError as e:
+            if e.errno == 17:
+                pass
+            else:
+                return False
+        return True
 
     def import_tool(self):
         try:

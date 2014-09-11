@@ -27,7 +27,7 @@ if __name__ == "__main__":
             sys.exit(0)
         samples = scandir(arg1)
         job = Job(samples, job_cfg)
-        if not job.import_tool():
+        if not job.setup():
             sys.stderr.write("Could not import specified tool\n")
             sys.exit(0)
         gman = gman.GuestManager(Config())

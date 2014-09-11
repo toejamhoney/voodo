@@ -1,5 +1,4 @@
-import time
-
+import sys
 
 root_cmd = '/usr/bin/VBoxManage'
 cmds = {'showvminfo': [root_cmd, 'showvminfo', '', '--machinereadable'],
@@ -12,36 +11,18 @@ class GuestPool(object):
         self.pool = vm_map
         self.ready = dict(zip(vm_map.keys(), [False for i in vm_map]))
 
-    def acquire(self, names, block=False, timeout=90):
-        if block:
-            rv = self.wait_on(names, timeout)
-        else:
-            rv = self.check_on(names)
+    def acquire(self, name):
+        rv = None
+        if self.ready.get(name):
+            self.ready[name] = False
+            rv = self.pool.get(name)
         return rv
 
     def release(self, name):
-        self.ready[name] = True
-
-    def wait_on(self, names, timeout):
-        rv = None
-        cnt = 0
-        while not rv and cnt < timeout:
-            for name in names:
-                if self.ready.get(name):
-                    self.ready[name] = False
-                    rv = self.pool.get(name)
-            time.sleep(1)
-            cnt += 1
-        return rv
-
-    def check_on(self, names):
-        rv = None
-        for name in names:
-            if self.ready.get(name):
-                self.ready[name] = False
-                rv = self.pool.get(name)
-                break
-        return rv
+        if name in self.ready:
+            self.ready[name] = True
+        else:
+            sys.stderr.write("Attempt to release unknown VM: %s\n" % name)
 
     def __str__(self):
         string = 'Pool:'

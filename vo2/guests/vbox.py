@@ -10,9 +10,9 @@ CMD = '/usr/bin/VBoxManage'
 
 class VirtualMachine(object):
 
-
     def __init__(self, name, addr, port):
         """
+        :type self.msgs: multiprocessing.Queue
         :type self.guest: vo2.net.guest.EvalServer
         :param name:
         :param addr:
@@ -23,6 +23,7 @@ class VirtualMachine(object):
         self.addr = addr
         self.port = port
         self.proc = ProcMgr()
+        self.msgs = None
         self.guest = None
 
     def start(self):
@@ -64,4 +65,11 @@ class VirtualMachine(object):
         if self.connect():
             self.guest.ping()
 
-
+    def release(self):
+        """
+        :type self.msgs: multiprocessing.Queue
+        """
+        try:
+            self.msgs.put(self.name)
+        except AttributeError:
+            sys.stderr.write("%s: unable to signal completion to VM manager. Messages queue not set\n" % self.name)

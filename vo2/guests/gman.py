@@ -1,5 +1,7 @@
 import sys
 from importlib import import_module
+from threading import Thread
+from multiprocessing import Queue
 
 import gpool
 
@@ -11,6 +13,9 @@ class GuestManager(object):
         self.vm_map = dict(zip(setting, [None for i in setting]))
         self.populate_map(cfg)
         self.pool = gpool.GuestPool(self.vm_map)
+        self.msgs = Queue()
+        self.reader = Thread(self.check_msgs)
+        self.reader.start()
 
     def populate_map(self, cfg):
         factory = VmFactory(cfg)
@@ -18,7 +23,21 @@ class GuestManager(object):
             self.vm_map[vm] = factory.make(vm)
 
     def find_vm(self, names):
-        return self.pool.acquire(names, block=True, timeout=180)
+        rv = None
+        for name in names:
+            rv = self.pool.acquire(name)
+            if rv:
+                rv.msgs = self.msgs
+                break
+        return rv
+
+    def release_vm(self, name):
+        self.pool.release(name)
+
+    def check_msgs(self):
+        while True:
+            msg = self.msgs.get()
+            self.release_vm(msg)
 
 
 class VmFactory(object):

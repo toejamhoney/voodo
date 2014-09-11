@@ -16,6 +16,8 @@ POOL = Pool(NUMPROCS, maxtasksperchild=NUMTASKS)
 def sigint_handler(signum, frame):
     print 'Shutting down'
     POOL.terminate()
+    POOL.close()
+    POOL.join()
 
 
 class Scheduler(object):
