@@ -1,5 +1,6 @@
 import sys
 import os
+import logging
 from time import sleep
 
 
@@ -20,21 +21,46 @@ def run(task):
     :param task:
     :return:
     """
-    task.init()
-
-    src = os.path.join(task.sample.path, task.sample.name)
-    dst = task.cfg.setting('job', 'guestworkingdir')
-    rv = task.vm.guest.pull(src, dst)
-    if not rv:
-        sys.stderr.write("Guest pull failed on sample: %s -> %s" % (src, dst))
+    if not task.init():
         return task
 
+    print 'RUN: %s' % task.sample.name
 
-    src = os.path.join(task.cfg.setting('job', 'guestlogdir'), task.cfg.setting('job', 'pinlog'))
-    dst = os.path.join(task.cfg.setting('job', 'hostlogdir'), task.sample.name)
-    rv = task.vm.guest.push(src, dst)
-    if not rv:
-        sys.stderr.write("Guest push failed on logs: %s -> %s" % (src, dst))
+    pincmd = task.cfg.pincmd.format(pinbat=task.cfg.pinbat, pintool=task.cfg.pintool)
+
+    spoofs = task.cfg.spoofs.split(',')
+
+    for s in spoofs:
+        logging.warn(s)
+        if not task.vm.guest:
+            logging.warn("Setting up VM")
+            task.setup_vm(suffix=".%s" % s)
+
+        logging.warn("Loading sample")
+        if not task.vm.push_sample(task.sample.path, task.cfg.guestworkingdir):
+            sys.stderr.write("Guest pull failed on sample: %s -> %s\n" % (task.sample.path, task.cfg.guestworkingdir))
+            sleep(15)
+            task.teardown_vm()
+            return task
+
+        bincmd = '"c:\\malware\\spoofs\\%s" "c:\\malware\\%s"' % (s, task.sample.name)
+        cmd = ' -- '.join([pincmd, bincmd])
+
+        logging.warn(cmd)
+
+        rv = task.vm.guest.handle_popen(cmd)
+        if not rv[0]:
+            task.errors = rv[2]
+        else:
+            print "PIN stdout: %s\n" % rv[1]
+
+        src = '\\'.join([task.cfg.guestworkingdir, task.cfg.pinlog])
+        dst = os.path.join(task.cfg.hostloggingdir, '%s.%s.out' % (task.sample.name, s))
+        rv = task.vm.guest.push(src, dst)
+        if not rv:
+            sys.stderr.write("Guest push failed on loggings: %s -> %s\n" % (src, dst))
+
+        task.teardown_vm()
 
     return task
 

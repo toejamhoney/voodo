@@ -1,3 +1,4 @@
+import os
 import sys
 from xmlrpclib import ServerProxy, Error
 from time import sleep
@@ -25,11 +26,17 @@ class VirtualMachine(object):
         self.proc = ProcMgr()
         self.msgs = None
         self.guest = None
+        self.sniff = False
 
-    def start(self):
+    def start(self, pcap=''):
         cmd = [CMD, 'startvm', self.name]
         pid = self.proc.execute(cmd, fatal=True)
         out, err = self.proc.get_output(pid)
+        sleep(1)
+        if pcap:
+            self.set_pcap(pcap)
+            self.start_sniff()
+        sleep(1)
         while not self.ping_agent():
             sleep(2)
 
@@ -37,6 +44,9 @@ class VirtualMachine(object):
         cmd = [CMD, 'controlvm', self.name, 'poweroff']
         pid = self.proc.execute(cmd, fatal=True)
         out, err = self.proc.get_output(pid)
+        if self.sniff:
+            self.stop_sniff()
+        self.guest = None
 
     def restore(self, name=''):
         cmd = [CMD, 'snapshot', self.name]
@@ -44,6 +54,23 @@ class VirtualMachine(object):
             cmd.extend(['restore', name])
         else:
             cmd.append('restorecurrent')
+        pid = self.proc.execute(cmd, fatal=True)
+        out, err = self.proc.get_output(pid)
+
+    def start_sniff(self):
+        cmd = [CMD, 'controlvm', self.name, 'nictrace1', 'on']
+        pid = self.proc.execute(cmd, fatal=True)
+        out, err = self.proc.get_output(pid)
+        self.sniff = True
+
+    def stop_sniff(self):
+        cmd = [CMD, 'controlvm', self.name, 'nictrace1', 'off']
+        pid = self.proc.execute(cmd, fatal=True)
+        out, err = self.proc.get_output(pid)
+        self.sniff = False
+
+    def set_pcap(self, filepath):
+        cmd = [CMD, 'controlvm', self.name, 'nictracefile1', filepath]
         pid = self.proc.execute(cmd, fatal=True)
         out, err = self.proc.get_output(pid)
 
@@ -63,7 +90,13 @@ class VirtualMachine(object):
 
     def ping_agent(self):
         if self.connect():
-            self.guest.ping()
+            return self.guest.ping()
+
+    def push_sample(self, src, dst):
+        try:
+            return self.guest.pull(src, dst)
+        except AttributeError:
+            return False
 
     def release(self):
         """

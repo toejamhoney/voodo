@@ -50,7 +50,7 @@ class ProcMgr(object):
     def _communicate(self, proc_pid, result_qu):
         proc = self.get_popen_obj(proc_pid)
         out, err = proc.communicate()
-        result_qu.put( (out, err) )
+        result_qu.put((out, err))
 
     def terminate(self, proc_pid, kill=False):
         if not kill:

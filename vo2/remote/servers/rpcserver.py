@@ -3,8 +3,6 @@ import logging
 from importlib import import_module
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
-import vcfg
-
 
 def get_backend(backend_type):
     logging.info('get_backend type %s' % backend_type)

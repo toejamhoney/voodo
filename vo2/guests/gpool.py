@@ -9,7 +9,7 @@ class GuestPool(object):
 
     def __init__(self, vm_map):
         self.pool = vm_map
-        self.ready = dict(zip(vm_map.keys(), [False for i in vm_map]))
+        self.ready = dict(zip(vm_map.keys(), [True for i in vm_map]))
 
     def acquire(self, name):
         rv = None

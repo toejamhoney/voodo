@@ -21,14 +21,23 @@ class Task(object):
         self.log = None
 
     def init(self):
+        logpath = os.path.join(self.cfg.log, self.cfg.name, "%s.log" % self.sample.name)
         try:
-            self.log = open(self.cfg.setting('job', 'log'), 'w')
+            self.log = open(logpath, 'w')
         except IOError:
-            sys.stderr.write("Unable to create log file: %s\n" % self.cfg.setting('job', 'log'))
-        self.vm.restore(self.cfg.setting('snapshot'))
-        self.vm.start()
+            sys.stderr.write("Unable to create log file: %s\n" % logpath)
+            return False
+        else:
+            return True
 
-    def remote_exec(self, src):
+    def setup_vm(self, suffix=''):
+        self.vm.restore(self.cfg.snapshot)
+        self.vm.start(os.path.join(self.cfg.pcap, '%s%s.pcap' % (self.sample.name, suffix)))
+
+    def teardown_vm(self):
+        self.vm.poweroff()
+
+    def remote_eval(self, src):
         if not src:
             return False
         rv = None
@@ -41,6 +50,10 @@ class Task(object):
             return rv
 
     def complete(self):
-        self.log.close()
-        self.vm.poweroff()
-        self.vm.release()
+        if self.log:
+            self.log.close()
+        if self.vm:
+            self.vm.release()
+
+    def __str__(self):
+        return "Task\n\tSample: %s\n\tVM: %s\n" % (self.sample.path, self.vm.name)

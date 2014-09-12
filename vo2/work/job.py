@@ -11,27 +11,28 @@ class Job(object):
         self.tool = None
 
     def setup(self):
-        rv = self.import_tool()
-        if not rv:
-            return False
-        try:
-            os.makedirs(self.cfg.setting('job', 'log'))
-            os.makedirs(self.cfg.setting('job', 'hostlogdir'))
-        except OSError as e:
-            if e.errno == 17:
-                pass
-            else:
-                return False
-        return True
+        self.import_tool()
+        dirs = [os.path.join(self.cfg.log, self.cfg.name),
+                os.path.join(self.cfg.hostlogdir, self.cfg.name),
+                os.path.join(self.cfg.pcap, self.cfg.name)]
+        for d in dirs:
+            if d:
+                try:
+                    os.makedirs(d)
+                except OSError as e:
+                    if e.errno == 17:
+                        # Exists
+                        pass
+                    else:
+                        sys.stderr.write("Failed to create logging directories: %s\n\t%s" % (d, e))
+                        sys.exit(0)
 
     def import_tool(self):
         try:
-            self.tool = import_module(self.cfg.setting('job', 'host_tool'))
+            self.tool = import_module(self.cfg.host_tool)
         except ImportError as e:
-            sys.stderr.write("%s\n" % e)
-            return False
-        else:
-            return True
+            sys.stderr.write("Job failed to import specified tool: %s\n\t%s\n" % (self.cfg.host_tool, e))
+            sys.exit(0)
 
 
 if __name__ == "__main__":

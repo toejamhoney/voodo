@@ -8,12 +8,14 @@ VMS = ['xp00', 'xp01', 'xp02', 'xp03', 'xp04']
 
 
 class Config(object):
+
     def __init__(self, name=''):
         if name:
             cfg_file = os.path.join(CFG_PATH, name)
         else:
             cfg_file = os.path.join(CFG_PATH, DEFAULT_CFG)
-        self.parser = SafeConfigParser()
+        self.name = name
+        self.parser = SafeConfigParser(allow_no_value=True)
         self.parsed = self.parser.read(cfg_file)
 
     def new_cfg(self):
@@ -77,6 +79,24 @@ class Config(object):
         else:
             return ''
 
+    def namespace(self):
+        ns = Namespace()
+        for s in self.parser.sections():
+            for name, value in self.parser.items(s):
+                print "%s: %s" % (name, value)
+                setattr(ns, name, value)
+        return ns
+
+    def __getattr__(self, item):
+        print item
+        if item.startswith('__'):
+            if item == '__getstate__':
+                raise AttributeError
+        return self.setting('job', item)
+
+    def __getnewargs__(self):
+        return (self.name,)
+
     def __str__(self):
         rv = ''
         for sect in self.parser.sections():
@@ -85,6 +105,14 @@ class Config(object):
                 rv += '\t%s\t=\t%s\n' % (opt, self.parser.get(sect, opt))
         return rv
 
+
+class Namespace(object):
+
+    def __getattr__(self, item):
+        if not item.startswith('__'):
+            return ''
+        else:
+            raise AttributeError
 
 if __name__ == '__main__':
     cfg = Config()

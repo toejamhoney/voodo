@@ -2,6 +2,7 @@
 import signal
 import threading
 from multiprocessing import Pool
+from Queue import Queue
 
 from task import Task
 
@@ -17,24 +18,25 @@ def sigint_handler(signum, frame):
     print 'Shutting down'
     POOL.terminate()
     POOL.close()
-    POOL.join()
 
 
 class Scheduler(object):
 
     def __init__(self, job, vm_mgr):
         self.job = job
+        self.vms = job.cfg.vms.split(',')
         self.vm_mgr = vm_mgr
-        self.engine_thread = None
+        self.vm_queue = Queue()
+        self.vm_mgr_thread = threading.Thread(target=self.vm_mgr.find_vm, args=(self.vms, self.vm_queue))
+        self.vm_mgr_thread.daemon = True
+        self.engine_thread = threading.Thread(target=self.engine)
         self.stop_flag = threading.Event()
-        #self.pool = Pool(NUMPROCS, maxtasksperchild=NUMTASKS)
 
     def start(self):
         signal.signal(signal.SIGINT, sigint_handler)
         self.stop_flag.clear()
-        self.engine_thread = threading.Thread(target=self.engine)
         self.engine_thread.start()
-        self.engine_thread.join()
+        self.vm_mgr_thread.start()
 
     def stop(self):
         POOL.terminate()
@@ -42,9 +44,12 @@ class Scheduler(object):
 
     def engine(self):
         for job in self.job.jobs:
-            vm = self.vm_mgr.find_vm(self.job.cfg.setting('job', 'vms'))
+            vm = self.vm_queue.get()
+            #vm = self.vm_mgr.find_vm(self.job.cfg.vms.split(','))
             task = Task(vm, job.name, job.path, self.job.cfg)
-            POOL.apply_async(self.job.tool.run, (task,), callback=self.job.tool.callback)
+            print "%s" % task
+            result = POOL.apply_async(self.job.tool.run, (task,), callback=self.job.tool.callback)
+            result.get()
         self.cleanup()
 
     @staticmethod

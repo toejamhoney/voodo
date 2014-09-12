@@ -1,7 +1,7 @@
 import sys
 from importlib import import_module
 from threading import Thread
-from multiprocessing import Queue
+from multiprocessing import Manager
 
 import gpool
 
@@ -13,8 +13,10 @@ class GuestManager(object):
         self.vm_map = dict(zip(setting, [None for i in setting]))
         self.populate_map(cfg)
         self.pool = gpool.GuestPool(self.vm_map)
-        self.msgs = Queue()
-        self.reader = Thread(self.check_msgs)
+        self.mgr = Manager()
+        self.msgs = self.mgr.Queue()
+        self.reader = Thread(target=self.check_msgs)
+        self.reader.daemon = True
         self.reader.start()
 
     def populate_map(self, cfg):
@@ -22,14 +24,17 @@ class GuestManager(object):
         for vm in self.vm_map:
             self.vm_map[vm] = factory.make(vm)
 
-    def find_vm(self, names):
-        rv = None
-        for name in names:
-            rv = self.pool.acquire(name)
-            if rv:
-                rv.msgs = self.msgs
-                break
-        return rv
+    def find_vm(self, names, queue):
+        """
+        :type names: list
+        :type queue: Queue.Queue
+        """
+        while True:
+            for name in names:
+                vm = self.pool.acquire(name)
+                if vm:
+                    vm.msgs = self.msgs
+                    queue.put(vm)
 
     def release_vm(self, name):
         self.pool.release(name)
@@ -47,10 +52,10 @@ class VmFactory(object):
 
     def make(self, vmname):
         vm = self.cfg.setting('guests', vmname)
-        type_, delim, vm = vm.partition(',')
-        return self.instanciate(type_, vm)
+        type_, os, addr, port = vm.split(',')
+        return self.instanciate(vmname, type_, os, addr, port)
 
-    def instanciate(self, type_, cfgvm):
+    def instanciate(self, name, type_, os, addr, port):
         try:
             gmodule = import_module('guests.%s' % type_)
         except ImportError as e:
@@ -58,5 +63,5 @@ class VmFactory(object):
             sys.stderr.write("Unable to import virtual device module: %s\n" % type_)
             return None
         else:
-            name, addr, port = cfgvm.split(',')
+            sys.stdout.write("Creating: %s @ %s:%s\n" % (name, addr, port))
             return gmodule.VirtualMachine(name, addr, port)

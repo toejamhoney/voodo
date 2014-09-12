@@ -20,11 +20,13 @@ class EvalServer(object):
         cmd = '"%s" -r -i "%s" %s@%s:"%s" "%s"' % (PSCP, KEY, USER, HOST_ADDR, src, dst)
         child = Popen(cmd, shell=True)
         child.wait()
+        return True
 
     def push(self, src, dst):
         cmd = '"%s" -i "%s" "%s" %s@%s:"%s"' % (PSCP, KEY, src, USER, HOST_ADDR, dst)
         child = Popen(cmd, shell=True)
         child.wait()
+        return True
 
     def guest_eval(self, src):
         try:
@@ -60,4 +62,4 @@ class EvalServer(object):
                 print stderr
             if child.returncode:
                 rv = False
-        return rv, stdout, stderr
+        return [rv, stdout, stderr]
