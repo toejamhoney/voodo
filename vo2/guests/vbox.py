@@ -1,4 +1,4 @@
-import os
+import logging
 import sys
 from xmlrpclib import ServerProxy, Error
 from time import sleep
@@ -15,9 +15,6 @@ class VirtualMachine(object):
         """
         :type self.msgs: multiprocessing.Queue
         :type self.guest: vo2.net.guest.EvalServer
-        :param name:
-        :param addr:
-        :param port:
         :return:
         """
         self.name = name
@@ -29,11 +26,13 @@ class VirtualMachine(object):
         self.sniff = False
 
     def start(self, pcap=''):
+        logging.debug("Start %s [%s:%s]" % (self.name, self.addr, self.port))
         cmd = [CMD, 'startvm', self.name]
         pid = self.proc.execute(cmd, fatal=True)
         out, err = self.proc.get_output(pid)
         sleep(1)
         if pcap:
+            self.stop_sniff()
             self.set_pcap(pcap)
             self.start_sniff()
         sleep(1)
@@ -70,6 +69,7 @@ class VirtualMachine(object):
         self.sniff = False
 
     def set_pcap(self, filepath):
+        logging.debug("Set PCAP on %s -> %s" % (self.name, filepath))
         cmd = [CMD, 'controlvm', self.name, 'nictracefile1', filepath]
         pid = self.proc.execute(cmd, fatal=True)
         out, err = self.proc.get_output(pid)

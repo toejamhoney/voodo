@@ -1,6 +1,6 @@
 import sys
 import os
-import logging
+import logging as log
 from time import sleep
 
 
@@ -31,22 +31,28 @@ def run(task):
     spoofs = task.cfg.spoofs.split(',')
 
     for s in spoofs:
-        logging.warn(s)
+        log.debug(s)
         if not task.vm.guest:
-            logging.warn("Setting up VM")
+            log.debug("Setting up VM")
             task.setup_vm(suffix=".%s" % s)
 
-        logging.warn("Loading sample")
+        log.debug("Loading sample")
         if not task.vm.push_sample(task.sample.path, task.cfg.guestworkingdir):
             sys.stderr.write("Guest pull failed on sample: %s -> %s\n" % (task.sample.path, task.cfg.guestworkingdir))
             sleep(15)
             task.teardown_vm()
             return task
 
-        bincmd = '"%s\\spoofs\\%s" "%s\\%s"' % (task.cfg.guestworkingdir, s, task.cfg.guestworkingdir, task.sample.name)
+        bincmd = ''
+        if 'pdf' in task.sample.type.lower():
+            bincmd = '"%s" ' % task.cfg.pdfreader
+        elif 'dll' in task.sample.type.lower():
+            bincmd = '"%s\\spoofs\\%s" ' % (task.cfg.guestworkingdir, s)
+        bincmd += '"%s\\%s"' % (task.cfg.guestworkingdir, task.sample.name)
+
         cmd = ' -- '.join([pincmd, bincmd])
 
-        logging.warn(cmd)
+        log.debug(cmd)
 
         rv = task.vm.guest.handle_popen(cmd)
         sleep(10)
@@ -59,7 +65,7 @@ def run(task):
         dst = os.path.join(task.cfg.hostlogdir, task.cfg.name, '%s.%s.out' % (task.sample.name, s))
         rv = task.vm.guest.push(src, dst)
         if not rv:
-            sys.stderr.write("Guest push failed on loggings: %s -> %s\n" % (src, dst))
+            sys.stderr.write("Guest push failed on logs: %s -> %s\n" % (src, dst))
 
         sleep(30)
 
