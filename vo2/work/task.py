@@ -32,7 +32,7 @@ class Task(object):
 
     def setup_vm(self, suffix=''):
         self.vm.restore(self.cfg.snapshot)
-        self.vm.start(os.path.join(self.cfg.pcap, '%s%s.pcap' % (self.sample.name, suffix)))
+        self.vm.start(os.path.join(self.cfg.pcap, self.cfg.name, '%s%s.pcap' % (self.sample.name, suffix)))
 
     def teardown_vm(self):
         self.vm.poweroff()

@@ -12,13 +12,17 @@ class Job(object):
 
     def setup(self):
         self.import_tool()
+
         dirs = [os.path.join(self.cfg.log, self.cfg.name),
                 os.path.join(self.cfg.hostlogdir, self.cfg.name),
                 os.path.join(self.cfg.pcap, self.cfg.name)]
+
+        old_mask = os.umask(0007)
+
         for d in dirs:
             if d:
                 try:
-                    os.makedirs(d)
+                    os.makedirs(d, 0770)
                 except OSError as e:
                     if e.errno == 17:
                         # Exists
@@ -26,6 +30,8 @@ class Job(object):
                     else:
                         sys.stderr.write("Failed to create logging directories: %s\n\t%s" % (d, e))
                         sys.exit(0)
+
+        os.umask(old_mask)
 
     def import_tool(self):
         try:

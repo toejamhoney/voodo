@@ -43,22 +43,25 @@ def run(task):
             task.teardown_vm()
             return task
 
-        bincmd = '"c:\\malware\\spoofs\\%s" "c:\\malware\\%s"' % (s, task.sample.name)
+        bincmd = '"%s\\spoofs\\%s" "%s\\%s"' % (task.cfg.guestworkingdir, s, task.cfg.guestworkingdir, task.sample.name)
         cmd = ' -- '.join([pincmd, bincmd])
 
         logging.warn(cmd)
 
         rv = task.vm.guest.handle_popen(cmd)
+        sleep(10)
         if not rv[0]:
             task.errors = rv[2]
         else:
             print "PIN stdout: %s\n" % rv[1]
 
         src = '\\'.join([task.cfg.guestworkingdir, task.cfg.pinlog])
-        dst = os.path.join(task.cfg.hostloggingdir, '%s.%s.out' % (task.sample.name, s))
+        dst = os.path.join(task.cfg.hostlogdir, task.cfg.name, '%s.%s.out' % (task.sample.name, s))
         rv = task.vm.guest.push(src, dst)
         if not rv:
             sys.stderr.write("Guest push failed on loggings: %s -> %s\n" % (src, dst))
+
+        sleep(30)
 
         task.teardown_vm()
 

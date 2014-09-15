@@ -2,7 +2,7 @@ import os
 from subprocess import Popen, PIPE
 
 VDIR = "c:\\remote"
-EXEDIR = "c:\\remote\\binaries"
+EXEDIR = "c:\\remote\\bin"
 KEYSDIR = "c:\\keys"
 MALDIR = "c:\\malware"
 PSCP = '%s' % os.path.join(EXEDIR, "pscp.exe")
