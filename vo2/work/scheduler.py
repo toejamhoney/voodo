@@ -7,11 +7,12 @@ from Queue import Queue
 from task import Task
 
 
-NUMPROCS = 5
-NUMTASKS = 1
+#NUMPROCS = 5
+#NUMTASKS = 1
 
 
-POOL = Pool(NUMPROCS, maxtasksperchild=NUMTASKS)
+#POOL = Pool(NUMPROCS, maxtasksperchild=NUMTASKS)
+POOL = None
 
 
 def sigint_handler(signum, frame):
@@ -23,6 +24,8 @@ def sigint_handler(signum, frame):
 class Scheduler(object):
 
     def __init__(self, job, vm_mgr):
+        global POOL
+        POOL = Pool(len(job.cfg.vms.split(',')), maxtasksperchild=1)
         self.job = job
         self.vms = job.cfg.vms.split(',')
         self.vm_mgr = vm_mgr
@@ -48,8 +51,7 @@ class Scheduler(object):
             #vm = self.vm_mgr.find_vm(self.job.cfg.vms.split(','))
             task = Task(vm, job.name, job.path, self.job.cfg)
             print "%s" % task
-            result = POOL.apply_async(self.job.tool.run, (task,), callback=self.job.tool.callback)
-            result.get()
+            POOL.apply_async(self.job.tool.run, (task,), callback=self.job.tool.callback)
         self.cleanup()
 
     @staticmethod

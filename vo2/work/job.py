@@ -20,7 +20,7 @@ class Job(object):
         old_mask = os.umask(0007)
 
         for d in dirs:
-            if d:
+            if d and d != self.cfg.name:
                 try:
                     os.makedirs(d, 0770)
                 except OSError as e:

@@ -11,12 +11,12 @@ class Config(object):
 
     def __init__(self, name=''):
         if name:
-            cfg_file = os.path.join(CFG_PATH, name)
+            self.cfg_file = os.path.join(CFG_PATH, name)
         else:
-            cfg_file = os.path.join(CFG_PATH, DEFAULT_CFG)
+            self.cfg_file = os.path.join(CFG_PATH, DEFAULT_CFG)
         self.name = name
         self.parser = SafeConfigParser(allow_no_value=True)
-        self.parsed = self.parser.read(cfg_file)
+        self.parsed = self.parser.read(self.cfg_file)
 
     def new_cfg(self):
         for section in sorted([s for s in dir(self) if s.startswith('s_')]):
@@ -97,13 +97,16 @@ class Config(object):
     def __getnewargs__(self):
         return (self.name,)
 
+    def __repr__(self):
+        try:
+            fin = open(self.cfg_file, 'r')
+        except IOError as e:
+            return '%s' % e
+        else:
+            return fin.read()
+
     def __str__(self):
-        rv = ''
-        for sect in self.parser.sections():
-            rv += 'Section: %s\n' % sect
-            for opt in self.parser.options(sect):
-                rv += '\t%s\t=\t%s\n' % (opt, self.parser.get(sect, opt))
-        return rv
+        return self.cfg_file
 
 
 class Namespace(object):

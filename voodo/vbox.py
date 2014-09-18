@@ -9,7 +9,7 @@ import v_parser
 
 
 root_cmd = '/usr/bin/VBoxManage'
-cmds = { 'showvminfo'  : [ root_cmd, 'showvminfo', '', '--machinereadable' ], 'list'        : [ root_cmd, 'list', 'vms' ], }
+cmds = {'showvminfo': [root_cmd, 'showvminfo', '', '--machinereadable' ], 'list'        : [ root_cmd, 'list', 'vms' ], }
 
 class VBoxDriver(object):
   

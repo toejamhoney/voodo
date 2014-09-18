@@ -51,6 +51,9 @@ class Task(object):
 
     def complete(self):
         if self.log:
+            if self.errors:
+                for e in self.errors:
+                    self.log.write(e)
             self.log.close()
         if self.vm:
             self.vm.release()

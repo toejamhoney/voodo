@@ -24,9 +24,13 @@ class VirtualMachine(object):
         self.msgs = None
         self.guest = None
         self.sniff = False
+        self.state = None
 
     def start(self, pcap=''):
         logging.debug("Start %s [%s:%s]" % (self.name, self.addr, self.port))
+        self.update_state()
+        if self.state != 'saved':
+            self.restore()
         cmd = [CMD, 'startvm', self.name]
         pid = self.proc.execute(cmd, fatal=True)
         out, err = self.proc.get_output(pid)
@@ -55,6 +59,38 @@ class VirtualMachine(object):
             cmd.append('restorecurrent')
         pid = self.proc.execute(cmd, fatal=True)
         out, err = self.proc.get_output(pid)
+
+    def take_snap(self, name=''):
+        if not name:
+            name = self.next_snapshot_name()
+        cmd = [CMD, 'snapshot', self.name, 'take', name]
+
+    def del_snap(self, name=''):
+        cmd = [CMD, 'snapshot', self.name, 'delete', name]
+
+    def next_snapshot_name(self):
+        name = '0000'
+        cmd = [CMD, 'snapshot', self.name, 'list', '--machinereadable']
+        pid = self.proc.execute(cmd)
+        out, err = self.proc.get_output(pid)
+        if out:
+            for line in out.split('\n'):
+                if line.lower.startswith('currentsnapshotname'):
+                    name = line.partition('=')[2].strip('"')
+                    break
+
+
+    def update_state(self):
+        cmd = [CMD, 'showvminfo', self.name, '--machinereadable']
+        pid = self.proc.execute(cmd)
+        out, err = self.proc.get_output(pid)
+        if not out:
+            self.state = None
+            return False
+        for line in out.split('\n'):
+            if line.startswith('VMState='):
+                self.state = line.partition('=')[2].strip('"')
+                break
 
     def start_sniff(self):
         cmd = [CMD, 'controlvm', self.name, 'nictrace1', 'on']

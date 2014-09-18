@@ -1,5 +1,6 @@
 import os
 import sys
+import logging as log
 
 from vcfg import Config
 from guests import gman
@@ -9,19 +10,24 @@ from work.job import Job
 
 
 if __name__ == "__main__":
+    if 'debug' in sys.argv:
+        log.basicConfig(level=log.DEBUG)
+
     try:
         job_cfg = Config(name=sys.argv[1])
     except IndexError:
-        sys.stderr.write("Job job_cfg file not found: %s\n" % os.path.join('conf', sys.argv[1]))
+        log.error("Job job_cfg file not found: %s" % os.path.join('conf', sys.argv[1]))
         sys.exit(0)
 
     if not job_cfg.parsed:
-        sys.stderr.write("Bad job_cfg file failed to parse: %s\n" % os.path.join('conf', sys.argv[1]))
+        log.error("Bad job_cfg file failed to parse: %s\n" % os.path.join('conf', sys.argv[1]))
         sys.exit(0)
 
     if not os.path.isdir(job_cfg.jobdir):
-        sys.stderr.write("Argument 'jobdir' is not a directory: %s\n" % job_cfg.jobdir)
+        log.error("Argument 'jobdir' is not a directory: %s\n" % job_cfg.jobdir)
         sys.exit(0)
+
+    log.info('%s' % job_cfg)
 
     cfg = job_cfg.namespace()
 
