@@ -86,7 +86,8 @@ class VoodoCLI(Cmd):
         #self.rpc_proxy = proxy.RPCProxy('jobber')
         self.rpc_proxy = object
         # LIBRARY
-        self.catalog = catalog.Catalog()
+        #self.catalog = catalog.Catalog()
+        self.catalog = None
         # TASK SCHEDULER ENGINE
         self.scheduler = scheduler.Scheduler(self.db_gateway, self.vm_driver.get_vm_map(), self.rpc_proxy)
 

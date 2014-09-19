@@ -1,8 +1,9 @@
 # Python Modules
 import signal
 import threading
+import logging as log
 from multiprocessing import Pool
-from Queue import Queue
+from Queue import Queue, Empty
 
 from task import Task
 
@@ -32,14 +33,17 @@ class Scheduler(object):
         self.vm_queue = Queue()
         self.vm_mgr_thread = threading.Thread(target=self.vm_mgr.find_vm, args=(self.vms, self.vm_queue))
         self.vm_mgr_thread.daemon = True
-        self.engine_thread = threading.Thread(target=self.engine)
+        if job.cfg.type.lower() == 'analysis':
+            self.engine_thread = threading.Thread(target=self.engine)
+        elif job.cfg.type.lower() == 'maintenance':
+            self.engine_thread = threading.Thread(target=self.maintain)
         self.stop_flag = threading.Event()
 
     def start(self):
         signal.signal(signal.SIGINT, sigint_handler)
         self.stop_flag.clear()
-        self.engine_thread.start()
         self.vm_mgr_thread.start()
+        self.engine_thread.start()
 
     def stop(self):
         POOL.terminate()
@@ -49,12 +53,30 @@ class Scheduler(object):
         for job in self.job.jobs:
             vm = self.vm_queue.get()
             #vm = self.vm_mgr.find_vm(self.job.cfg.vms.split(','))
-            task = Task(vm, job.name, job.path, self.job.cfg)
+            task = Task(self.job.cfg, vm, job.name, job.path)
             print "%s" % task
             POOL.apply_async(self.job.tool.run, (task,), callback=self.job.tool.callback)
         self.cleanup()
 
+    def maintain(self):
+        global POOL
+        vms = []
+        while not self.vm_queue.empty():
+            try:
+                vms.append(self.vm_queue.get(block=True, timeout=5))
+            except Empty:
+                break
+        tasks = [Task(self.job.cfg, vm) for vm in vms]
+        rv = POOL.map_async(self.job.tool.run, tasks)
+        for task in tasks:
+            log.debug("%s" % task)
+        rv.wait()
+        log.debug(rv.get())
+        self.cleanup()
+
     @staticmethod
     def cleanup():
+        log.debug("Cleaning up")
         POOL.close()
         POOL.join()
+        log.debug("Pool cloased")

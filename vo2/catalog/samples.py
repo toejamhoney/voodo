@@ -13,4 +13,6 @@ class Sample(object):
     def __init__(self, name, path):
         self.name = name
         self.path = path
-        self.type = magic.from_file(path)
+        self.type = ''
+        if path:
+            self.type = magic.from_file(path)

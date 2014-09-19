@@ -3,6 +3,8 @@ import logging
 from importlib import import_module
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
+VERSION = 0.0
+
 
 def get_backend(backend_type):
     logging.info('get_backend type %s' % backend_type)
@@ -23,6 +25,7 @@ def get_backend(backend_type):
 
 
 def main(addr, port, type_):
+    logging.warn('Main, Version: %d' % VERSION)
     logging.info('main creating server on %s:%d' % (addr, port))
     server = SimpleXMLRPCServer((addr, port), allow_none=True)
     backend_type = get_backend(type_)
@@ -45,7 +48,7 @@ if __name__ == '__main__':
         logging.info('No or invalid arguments found. Defaulting to defaults')
         addr = intern('0.0.0.0')
         port = 4828
-        type_ = intern('evalserver.EvalServer')
+        type_ = intern('servers.vserver.EvalServer')
     except ValueError:
         sys.stderr.write("Invalid port number string: %s\n" % sys.argv[2])
         sys.exit(0)

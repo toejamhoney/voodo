@@ -1,7 +1,7 @@
-import logging
 import sys
-from xmlrpclib import ServerProxy, Error
-from time import sleep
+import logging as log
+from time import sleep, time
+from xmlrpclib import ServerProxy
 
 from vlibs.proc_mgmt import ProcMgr
 
@@ -19,6 +19,7 @@ class VirtualMachine(object):
         """
         self.name = name
         self.addr = addr
+        self.host_addr = "10.%s.%s.1" % (addr.split('.')[1], addr.split('.')[1])
         self.port = port
         self.proc = ProcMgr()
         self.msgs = None
@@ -27,13 +28,14 @@ class VirtualMachine(object):
         self.state = None
 
     def start(self, pcap=''):
-        logging.debug("Start %s [%s:%s]" % (self.name, self.addr, self.port))
+        log.debug("Start %s [%s:%s]" % (self.name, self.addr, self.port))
         self.update_state()
         if self.state != 'saved':
             self.restore()
         cmd = [CMD, 'startvm', self.name]
-        pid = self.proc.execute(cmd, fatal=True)
-        out, err = self.proc.get_output(pid)
+        if self.proc.exec_quiet(cmd) != 0:
+            self.error('start failure: %s' % cmd)
+            sys.exit(1)
         sleep(1)
         if pcap:
             self.stop_sniff()
@@ -41,44 +43,42 @@ class VirtualMachine(object):
             self.start_sniff()
         sleep(1)
         while not self.ping_agent():
-            sleep(2)
+            sleep(1)
 
     def poweroff(self):
         cmd = [CMD, 'controlvm', self.name, 'poweroff']
-        pid = self.proc.execute(cmd, fatal=True)
-        out, err = self.proc.get_output(pid)
+        if self.proc.exec_quiet(cmd) != 0:
+            self.error('poweroff error: %s' % cmd)
+            sys.exit(1)
         if self.sniff:
             self.stop_sniff()
         self.guest = None
 
     def restore(self, name=''):
+        self.update_state()
+        if self.state == 'running':
+            self.poweroff()
         cmd = [CMD, 'snapshot', self.name]
         if name:
             cmd.extend(['restore', name])
         else:
             cmd.append('restorecurrent')
-        pid = self.proc.execute(cmd, fatal=True)
-        out, err = self.proc.get_output(pid)
+        if self.proc.exec_quiet(cmd) != 0:
+            sys.exit(1)
 
     def take_snap(self, name=''):
         if not name:
-            name = self.next_snapshot_name()
+            name = str(time())
         cmd = [CMD, 'snapshot', self.name, 'take', name]
+        if self.proc.exec_quiet(cmd) != 0:
+            self.error('take_snap error: %s' % cmd)
+            sys.exit(1)
 
-    def del_snap(self, name=''):
+    def del_snap(self, name):
         cmd = [CMD, 'snapshot', self.name, 'delete', name]
-
-    def next_snapshot_name(self):
-        name = '0000'
-        cmd = [CMD, 'snapshot', self.name, 'list', '--machinereadable']
-        pid = self.proc.execute(cmd)
-        out, err = self.proc.get_output(pid)
-        if out:
-            for line in out.split('\n'):
-                if line.lower.startswith('currentsnapshotname'):
-                    name = line.partition('=')[2].strip('"')
-                    break
-
+        if self.proc.exec_quiet(cmd) != 0:
+            self.error('del_snap error: %s' % cmd)
+            sys.exit(1)
 
     def update_state(self):
         cmd = [CMD, 'showvminfo', self.name, '--machinereadable']
@@ -94,21 +94,24 @@ class VirtualMachine(object):
 
     def start_sniff(self):
         cmd = [CMD, 'controlvm', self.name, 'nictrace1', 'on']
-        pid = self.proc.execute(cmd, fatal=True)
-        out, err = self.proc.get_output(pid)
+        if self.proc.exec_quiet(cmd) != 0:
+            self.error('start_sniff error: %s' % cmd)
+            sys.exit(1)
         self.sniff = True
 
     def stop_sniff(self):
         cmd = [CMD, 'controlvm', self.name, 'nictrace1', 'off']
-        pid = self.proc.execute(cmd, fatal=True)
-        out, err = self.proc.get_output(pid)
+        if self.proc.exec_quiet(cmd) != 0:
+            self.error('stop_sniff error: %s' % cmd)
+            sys.exit(1)
         self.sniff = False
 
     def set_pcap(self, filepath):
-        logging.debug("Set PCAP on %s -> %s" % (self.name, filepath))
+        self.error("Set PCAP on %s -> %s" % (self.name, filepath))
         cmd = [CMD, 'controlvm', self.name, 'nictracefile1', filepath]
-        pid = self.proc.execute(cmd, fatal=True)
-        out, err = self.proc.get_output(pid)
+        if self.proc.exec_quiet(cmd) != 0:
+            self.error('set_pcap error: %s' % cmd)
+            sys.exit(1)
 
     def reset(self):
         self.poweroff()
@@ -119,7 +122,7 @@ class VirtualMachine(object):
         try:
             self.guest = ServerProxy("http://%s:%s" % (self.addr, self.port))
         except Exception as e:
-            sys.stderr.write("%s\n" % e)
+            self.error("connect error: %s" % e)
             return False
         else:
             return True
@@ -130,7 +133,7 @@ class VirtualMachine(object):
 
     def push_sample(self, src, dst):
         try:
-            return self.guest.pull(src, dst)
+            return self.guest.pull(src, dst, self.host_addr)
         except AttributeError:
             return False
 
@@ -142,3 +145,6 @@ class VirtualMachine(object):
             self.msgs.put(self.name)
         except AttributeError:
             sys.stderr.write("%s: unable to signal completion to VM manager. Messages queue not set\n" % self.name)
+
+    def error(self, msg):
+        log.error('%s(%s:%s) %s' % (self.name, self.addr, self.port, msg))

@@ -7,21 +7,25 @@ from catalog.samples import Sample
 
 class Task(object):
 
-    def __init__(self, vm, name, path, cfg):
+    def __init__(self, cfg, vm, name='', path=''):
         """
         :type cfg: vo2.vcfg.Config
         :type vm: vo2.guests.vbox.VirtualMachine
         :param cfg:
         :return:
         """
-        self.sample = Sample(name, path)
+        if name and path:
+            self.sample = Sample(name, path)
         self.cfg = cfg
         self.vm = vm
         self.errors = []
         self.log = None
 
     def init(self):
-        logpath = os.path.join(self.cfg.log, self.cfg.name, "%s.log" % self.sample.name)
+        try:
+            logpath = os.path.join(self.cfg.log, self.cfg.name, "%s.%s.log" % (self.sample.name, self.vm.name))
+        except AttributeError:
+            logpath = os.path.join(self.cfg.log, self.cfg.name, "%s.log" % self.vm.name)
         try:
             self.log = open(logpath, 'w')
         except IOError:
@@ -32,7 +36,10 @@ class Task(object):
 
     def setup_vm(self, suffix=''):
         self.vm.restore(self.cfg.snapshot)
-        self.vm.start(os.path.join(self.cfg.pcap, self.cfg.name, '%s%s.pcap' % (self.sample.name, suffix)))
+        try:
+            self.vm.start(os.path.join(self.cfg.pcap, self.cfg.name, '%s%s.pcap' % (self.sample.name, suffix)))
+        except AttributeError:
+            self.vm.start()
 
     def teardown_vm(self):
         self.vm.poweroff()
@@ -59,4 +66,8 @@ class Task(object):
             self.vm.release()
 
     def __str__(self):
-        return "Task\n\tSample: %s\n\tVM: %s\n" % (self.sample.path, self.vm.name)
+        try:
+            s = "Task\n\tSample: %s\n\tVM: %s\n\tCfg: %s\n" % (self.sample.path, self.vm.name, self.cfg.name)
+        except AttributeError:
+            s = "Task\n\tVM: %s\n\tCfg: %s\n" % (self.vm.name, self.cfg.name)
+        return s

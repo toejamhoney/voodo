@@ -10,6 +10,8 @@ from work.job import Job
 
 
 if __name__ == "__main__":
+    samples = []
+
     if 'debug' in sys.argv:
         log.basicConfig(level=log.DEBUG)
 
@@ -23,15 +25,15 @@ if __name__ == "__main__":
         log.error("Bad job_cfg file failed to parse: %s\n" % os.path.join('conf', sys.argv[1]))
         sys.exit(0)
 
-    if not os.path.isdir(job_cfg.jobdir):
-        log.error("Argument 'jobdir' is not a directory: %s\n" % job_cfg.jobdir)
-        sys.exit(0)
+    if job_cfg.jobdir:
+        if not os.path.isdir(job_cfg.jobdir):
+            log.error("Argument 'jobdir' is not a directory: %s\n" % job_cfg.jobdir)
+            sys.exit(0)
+        samples = scandir(job_cfg.jobdir)
 
     log.info('%s' % job_cfg)
 
     cfg = job_cfg.namespace()
-
-    samples = scandir(cfg.jobdir)
 
     job = Job(samples, cfg)
     job.setup()
