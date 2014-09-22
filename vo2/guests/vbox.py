@@ -1,3 +1,4 @@
+import os
 import sys
 import logging as log
 from time import sleep, time
@@ -6,7 +7,12 @@ from xmlrpclib import ServerProxy
 from vlibs.proc_mgmt import ProcMgr
 
 
-CMD = '/usr/bin/VBoxManage'
+CMD = r'/usr/bin/VBoxManage'
+EXEDIR = r'c:\remote\bin'
+USER = 'logger'
+KEY = r'c:\remote\keys'
+PSCP = r'c:\remote\bin\pscp.exe'
+WINSCP = r'c:\remote\bin\winscp.exe'
 
 
 class VirtualMachine(object):
@@ -31,9 +37,10 @@ class VirtualMachine(object):
         log.debug("Start %s [%s:%s]" % (self.name, self.addr, self.port))
         self.update_state()
         if self.state != 'saved':
-            self.restore()
+            pass
+            #self.restore()
         cmd = [CMD, 'startvm', self.name]
-        if self.proc.exec_quiet(cmd) != 0:
+        if self.state != 'running' and self.proc.exec_quiet(cmd) != 0:
             self.error('start failure: %s' % cmd)
             sys.exit(1)
         sleep(1)
@@ -107,7 +114,6 @@ class VirtualMachine(object):
         self.sniff = False
 
     def set_pcap(self, filepath):
-        self.error("Set PCAP on %s -> %s" % (self.name, filepath))
         cmd = [CMD, 'controlvm', self.name, 'nictracefile1', filepath]
         if self.proc.exec_quiet(cmd) != 0:
             self.error('set_pcap error: %s' % cmd)
@@ -131,12 +137,6 @@ class VirtualMachine(object):
         if self.connect():
             return self.guest.ping()
 
-    def push_sample(self, src, dst):
-        try:
-            return self.guest.pull(src, dst, self.host_addr)
-        except AttributeError:
-            return False
-
     def release(self):
         """
         :type self.msgs: multiprocessing.Queue
@@ -148,3 +148,40 @@ class VirtualMachine(object):
 
     def error(self, msg):
         log.error('%s(%s:%s) %s' % (self.name, self.addr, self.port, msg))
+
+    def winscp_push(self, src, dst):
+        cmd = [os.path.join(EXEDIR, 'winscp.exe'),
+               '/command',
+               '"open %s@%s -hostkey=* -privatekey=%s"' % (USER, self.host_addr, KEY),
+               '"get %s %s"' % (src, dst),
+               '"exit"']
+        return self.guest.handle_popen(cmd, use_shell=False)
+
+    def winscp_pull(self, src, dst):
+        cmd = [os.path.join(EXEDIR, 'winscp.exe'),
+               '/command',
+               '"open %s@%s -hostkey=* -privatekey=%s"' % (USER, self.host_addr, KEY),
+               '"put -transfer=binary %s %s"' % (src, dst),
+               '"exit"']
+        return self.guest.handle_popen(cmd, use_shell=False)
+
+    def winscp_script(self, script):
+        cmd = [os.path.join(EXEDIR, 'winscp.com'),
+               '/script=%s' % script]
+        return self.guest.handle_popen(cmd, use_shell=False)
+
+    def pscp_pull(self, src, dst):
+        cmd = 'echo y | "%s" -r -i "%s" %s@%s:"%s" "%s"' % (PSCP, KEY, USER, self.host_addr, src, dst)
+        return self.guest.handle_popen(cmd)
+
+    def pscp_push(self, src, dst):
+        cmd = 'echo y | "%s" -i "%s" "%s" %s@%s:"%s"' % (PSCP, KEY, src, USER, self.host_addr, dst)
+        return self.guest.handle_popen(cmd)
+
+    def terminate_pid(self, pid):
+        cmd = 'taskkill /f /t /pid %s' % pid
+        return self.guest.handle_popen(cmd)
+
+    def terminate_name(self, p_name):
+        cmd = 'taskkill /f /t /IM %s' % p_name
+        return self.guest.handle_popen(cmd)

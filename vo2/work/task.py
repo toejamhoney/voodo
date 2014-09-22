@@ -35,7 +35,7 @@ class Task(object):
             return True
 
     def setup_vm(self, suffix=''):
-        self.vm.restore(self.cfg.snapshot)
+        #self.vm.restore(self.cfg.snapshot)
         try:
             self.vm.start(os.path.join(self.cfg.pcap, self.cfg.name, '%s%s.pcap' % (self.sample.name, suffix)))
         except AttributeError:

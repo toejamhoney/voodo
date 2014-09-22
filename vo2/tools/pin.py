@@ -40,7 +40,7 @@ def run(task):
             task.setup_vm(suffix=".%s" % s)
 
         log.debug("Loading sample")
-        if not task.vm.push_sample(task.sample.path, task.cfg.guestworkingdir):
+        if not task.vm.winscp_push(task.sample.path, task.cfg.guestworkingdir):
             log.error("Failed to push sample: %s -> %s\n" % (task.sample.path, task.cfg.guestworkingdir))
             task.teardown_vm()
             return task
@@ -53,7 +53,7 @@ def run(task):
         bincmd = ''
         if 'pdf' in task.sample.type.lower():
             bincmd = '"%s" ' % task.cfg.pdfreader
-            execution_time *= 5
+            execution_time *= 4
         elif 'dll' in task.sample.type.lower():
             bincmd = '"%s\\spoofs\\%s" ' % (task.cfg.guestworkingdir, s)
         bincmd += '"%s\\%s"' % (task.cfg.guestworkingdir, task.sample.name)
@@ -67,7 +67,7 @@ def run(task):
         exec_thread = Thread(target=guest_popen, args=(task.vm.guest, cmd, results_qu))
         exec_thread.start()
 
-        log.debug('%s waiting on results. Timeout = %s' % (task.vm.name, task.cfg.exectime))
+        log.debug('%s waiting on results. Timeout = %s' % (task.vm.name, execution_time))
 
         try:
             rv = results_qu.get(True, execution_time)
@@ -86,7 +86,7 @@ def run(task):
 
         src = '\\'.join([task.cfg.guestworkingdir, task.cfg.pinlog])
         dst = os.path.join(task.cfg.hostlogdir, task.cfg.name, '%s.%s.out' % (task.sample.name, s))
-        rv = task.vm.guest.push(src, dst)
+        rv = task.vm.winscp_pull(src, dst)
         if not rv:
             task.errors.append('Failed to pull pin log from guest: %s -> %s\n' % (src, dst))
             sys.stderr.write("Failed to pull pin log from guest: %s -> %s\n" % (src, dst))
