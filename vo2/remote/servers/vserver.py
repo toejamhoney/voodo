@@ -2,16 +2,6 @@ import os
 from subprocess import Popen, PIPE
 import logging as log
 
-VERSION = '0001'
-
-VDIR = "c:\\remote"
-EXEDIR = "c:\\remote\\bin"
-KEYSDIR = "c:\\remote\\keys"
-MALDIR = "c:\\malware"
-PSCP = '%s' % os.path.join(EXEDIR, "pscp.exe")
-KEY = '%s' % os.path.join(KEYSDIR, "voo_priv.ppk")
-USER = 'logger'
-
 
 class VServer(object):
 

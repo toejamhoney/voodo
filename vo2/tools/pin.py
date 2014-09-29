@@ -5,6 +5,8 @@ import logging as log
 from threading import Thread
 from Queue import Queue, Empty
 
+from time import sleep
+
 
 def read_file(filename):
     try:
@@ -40,7 +42,7 @@ def run(task):
             task.setup_vm(suffix=".%s" % s)
 
         log.debug("Loading sample")
-        if not task.vm.winscp_push(task.sample.path, task.cfg.guestworkingdir):
+        if not task.vm.winscp_push(task.sample.path, task.cfg.guestworkingdir + "\\"):
             log.error("Failed to push sample: %s -> %s\n" % (task.sample.path, task.cfg.guestworkingdir))
             task.teardown_vm()
             return task
@@ -53,7 +55,7 @@ def run(task):
         bincmd = ''
         if 'pdf' in task.sample.type.lower():
             bincmd = '"%s" ' % task.cfg.pdfreader
-            execution_time *= 4
+            execution_time *= 3
         elif 'dll' in task.sample.type.lower():
             bincmd = '"%s\\spoofs\\%s" ' % (task.cfg.guestworkingdir, s)
         bincmd += '"%s\\%s"' % (task.cfg.guestworkingdir, task.sample.name)
@@ -65,8 +67,8 @@ def run(task):
 
         results_qu = Queue()
         exec_thread = Thread(target=guest_popen, args=(task.vm.guest, cmd, results_qu))
+        exec_thread.daemon = True
         exec_thread.start()
-
         log.debug('%s waiting on results. Timeout = %s' % (task.vm.name, execution_time))
 
         try:
@@ -74,14 +76,16 @@ def run(task):
         except Empty:
             log.debug('%s execution timeout' % task.vm.name)
             task.errors.append('\nExecution time expired: (%s) %s\n' % (task.sample.type, task.sample.name))
-            rv = task.vm.guest.handle_popen(killcmd)
         except Exception as e:
             log.debug('%s' % traceback.format_exc())
             log.debug('%s popen thread error: %s' % (task.vm.name, e))
-            rv = task.vm.guest.handle_popen(killcmd)
+
+        log.debug('Trying to kill process')
+        rv = task.vm.guest.handle_popen(killcmd)
+        log.debug('Sent kill cmd')
 
         if not rv[0]:
-            log.error("%s\n%s" % (rv[1], rv[2]))
+            log.error("Error returned: %s\n%s" % (rv[1], rv[2]))
             task.errors.extend(list(rv[1:]))
 
         src = '\\'.join([task.cfg.guestworkingdir, task.cfg.pinlog])

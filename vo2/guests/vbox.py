@@ -1,6 +1,6 @@
 import os
 import sys
-import logging as log
+import logging
 from time import sleep, time
 from xmlrpclib import ServerProxy
 
@@ -10,7 +10,7 @@ from vlibs.proc_mgmt import ProcMgr
 CMD = r'/usr/bin/VBoxManage'
 EXEDIR = r'c:\remote\bin'
 USER = 'logger'
-KEY = r'c:\remote\keys'
+KEY = r'c:\remote\keys\voo_priv.ppk'
 PSCP = r'c:\remote\bin\pscp.exe'
 WINSCP = r'c:\remote\bin\winscp.exe'
 
@@ -34,7 +34,7 @@ class VirtualMachine(object):
         self.state = None
 
     def start(self, pcap=''):
-        log.debug("Start %s [%s:%s]" % (self.name, self.addr, self.port))
+        self.debug("Start %s [%s:%s]" % (self.name, self.addr, self.port))
         self.update_state()
         if self.state != 'saved':
             pass
@@ -126,7 +126,7 @@ class VirtualMachine(object):
 
     def connect(self):
         try:
-            self.guest = ServerProxy("http://%s:%s" % (self.addr, self.port))
+            self.guest = ServerProxy("http://%s:%s" % (self.addr, self.port), verbose=True)
         except Exception as e:
             self.error("connect error: %s" % e)
             return False
@@ -146,42 +146,74 @@ class VirtualMachine(object):
         except AttributeError:
             sys.stderr.write("%s: unable to signal completion to VM manager. Messages queue not set\n" % self.name)
 
-    def error(self, msg):
-        log.error('%s(%s:%s) %s' % (self.name, self.addr, self.port, msg))
-
     def winscp_push(self, src, dst):
-        cmd = [os.path.join(EXEDIR, 'winscp.exe'),
-               '/command',
+        self.debug("winscp_push: %s -> %s\n" % (src, dst))
+        cmd = [EXEDIR + '\\winscp.exe',
+               '/console', '/command',
                '"open %s@%s -hostkey=* -privatekey=%s"' % (USER, self.host_addr, KEY),
                '"get %s %s"' % (src, dst),
                '"exit"']
-        return self.guest.handle_popen(cmd, use_shell=False)
+
+        self.debug("winscp_push: %s\n" % cmd)
+        try:
+            self.guest.handle_popen(cmd)
+        except Exception as e:
+            print("PUSH ERR: %s" % e)
+            return False
+        else:
+            return True
 
     def winscp_pull(self, src, dst):
-        cmd = [os.path.join(EXEDIR, 'winscp.exe'),
-               '/command',
+        self.debug("winscp_pull: %s -> %s\n" % (src, dst))
+        if not self.guest:
+            return False
+        cmd = [EXEDIR + '\\winscp.exe',
+               '/console', '/command',
                '"open %s@%s -hostkey=* -privatekey=%s"' % (USER, self.host_addr, KEY),
                '"put -transfer=binary %s %s"' % (src, dst),
                '"exit"']
-        return self.guest.handle_popen(cmd, use_shell=False)
+        self.debug("winscp_pull: %s\n" % cmd)
+        return self.guest.handle_popen(cmd)
 
     def winscp_script(self, script):
-        cmd = [os.path.join(EXEDIR, 'winscp.com'),
+        if not self.guest:
+            return False
+        cmd = [EXEDIR + '\\winscp.com',
                '/script=%s' % script]
-        return self.guest.handle_popen(cmd, use_shell=False)
+        self.debug(cmd)
+        return self.guest.handle_popen(cmd)
 
     def pscp_pull(self, src, dst):
+        if not self.guest:
+            return False
         cmd = 'echo y | "%s" -r -i "%s" %s@%s:"%s" "%s"' % (PSCP, KEY, USER, self.host_addr, src, dst)
+        self.debug(cmd)
         return self.guest.handle_popen(cmd)
 
     def pscp_push(self, src, dst):
+        if not self.guest:
+            return False
         cmd = 'echo y | "%s" -i "%s" "%s" %s@%s:"%s"' % (PSCP, KEY, src, USER, self.host_addr, dst)
+        self.debug(cmd)
         return self.guest.handle_popen(cmd)
 
     def terminate_pid(self, pid):
+        if not self.guest:
+            return False
         cmd = 'taskkill /f /t /pid %s' % pid
+        self.debug(cmd)
         return self.guest.handle_popen(cmd)
 
     def terminate_name(self, p_name):
+        if not self.guest:
+            return False
         cmd = 'taskkill /f /t /IM %s' % p_name
+        self.debug(cmd)
         return self.guest.handle_popen(cmd)
+
+    def error(self, msg):
+        logging.error('%s(%s:%s) %s' % (self.name, self.addr, self.port, msg))
+
+    def debug(self, msg):
+        logging.debug('%s(%s:%s) %s' % (self.name, self.addr, self.port, msg))
+
