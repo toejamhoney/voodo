@@ -14,7 +14,7 @@ class Job(object):
         self.import_tool()
 
         dirs = [os.path.join(self.cfg.log, self.cfg.name),
-                os.path.join(self.cfg.hostlogdir, self.cfg.name),
+                os.path.join(self.cfg.outputdir, self.cfg.name),
                 os.path.join(self.cfg.pcap, self.cfg.name)]
 
         old_mask = os.umask(0007)

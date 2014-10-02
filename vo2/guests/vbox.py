@@ -1,4 +1,3 @@
-import os
 import sys
 import logging
 from time import sleep, time
@@ -17,7 +16,7 @@ WINSCP = r'c:\remote\bin\winscp.exe'
 
 class VirtualMachine(object):
 
-    def __init__(self, name, addr, port):
+    def __init__(self, name, addr, port, host_addr):
         """
         :type self.msgs: multiprocessing.Queue
         :type self.guest: vo2.net.guest.EvalServer
@@ -25,7 +24,7 @@ class VirtualMachine(object):
         """
         self.name = name
         self.addr = addr
-        self.host_addr = "10.%s.%s.1" % (addr.split('.')[1], addr.split('.')[1])
+        self.host_addr = host_addr
         self.port = port
         self.proc = ProcMgr()
         self.msgs = None
@@ -38,7 +37,7 @@ class VirtualMachine(object):
         self.update_state()
         if self.state != 'saved':
             pass
-            #self.restore()
+            self.restore()
         cmd = [CMD, 'startvm', self.name]
         if self.state != 'running' and self.proc.exec_quiet(cmd) != 0:
             self.error('start failure: %s' % cmd)
@@ -126,7 +125,7 @@ class VirtualMachine(object):
 
     def connect(self):
         try:
-            self.guest = ServerProxy("http://%s:%s" % (self.addr, self.port), verbose=True)
+            self.guest = ServerProxy("http://%s:%s" % (self.addr, self.port), verbose=False)
         except Exception as e:
             self.error("connect error: %s" % e)
             return False
@@ -153,10 +152,10 @@ class VirtualMachine(object):
                '"open %s@%s -hostkey=* -privatekey=%s"' % (USER, self.host_addr, KEY),
                '"get %s %s"' % (src, dst),
                '"exit"']
-
+        cmd = ' '.join(cmd)
         self.debug("winscp_push: %s\n" % cmd)
         try:
-            self.guest.handle_popen(cmd)
+            self.guest.execute(cmd)
         except Exception as e:
             print("PUSH ERR: %s" % e)
             return False
@@ -165,15 +164,14 @@ class VirtualMachine(object):
 
     def winscp_pull(self, src, dst):
         self.debug("winscp_pull: %s -> %s\n" % (src, dst))
-        if not self.guest:
-            return False
         cmd = [EXEDIR + '\\winscp.exe',
                '/console', '/command',
                '"open %s@%s -hostkey=* -privatekey=%s"' % (USER, self.host_addr, KEY),
                '"put -transfer=binary %s %s"' % (src, dst),
                '"exit"']
+        cmd = ' '.join(cmd)
         self.debug("winscp_pull: %s\n" % cmd)
-        return self.guest.handle_popen(cmd)
+        return self.guest.execute(cmd)
 
     def winscp_script(self, script):
         if not self.guest:
@@ -181,35 +179,35 @@ class VirtualMachine(object):
         cmd = [EXEDIR + '\\winscp.com',
                '/script=%s' % script]
         self.debug(cmd)
-        return self.guest.handle_popen(cmd)
+        return self.guest.execute(cmd)
 
     def pscp_pull(self, src, dst):
         if not self.guest:
             return False
         cmd = 'echo y | "%s" -r -i "%s" %s@%s:"%s" "%s"' % (PSCP, KEY, USER, self.host_addr, src, dst)
         self.debug(cmd)
-        return self.guest.handle_popen(cmd)
+        return self.guest.execute(cmd)
 
     def pscp_push(self, src, dst):
         if not self.guest:
             return False
         cmd = 'echo y | "%s" -i "%s" "%s" %s@%s:"%s"' % (PSCP, KEY, src, USER, self.host_addr, dst)
         self.debug(cmd)
-        return self.guest.handle_popen(cmd)
+        return self.guest.execute(cmd)
 
     def terminate_pid(self, pid):
         if not self.guest:
             return False
         cmd = 'taskkill /f /t /pid %s' % pid
         self.debug(cmd)
-        return self.guest.handle_popen(cmd)
+        return self.guest.execute(cmd)
 
     def terminate_name(self, p_name):
         if not self.guest:
             return False
         cmd = 'taskkill /f /t /IM %s' % p_name
         self.debug(cmd)
-        return self.guest.handle_popen(cmd)
+        return self.guest.execute(cmd)
 
     def error(self, msg):
         logging.error('%s(%s:%s) %s' % (self.name, self.addr, self.port, msg))

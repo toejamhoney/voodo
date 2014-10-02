@@ -8,11 +8,6 @@ from Queue import Queue, Empty
 from task import Task
 
 
-#NUMPROCS = 5
-#NUMTASKS = 1
-
-
-#POOL = Pool(NUMPROCS, maxtasksperchild=NUMTASKS)
 POOL = None
 
 
@@ -37,6 +32,7 @@ class Scheduler(object):
             self.engine_thread = threading.Thread(target=self.engine)
         elif job.cfg.type.lower() == 'maintenance':
             self.engine_thread = threading.Thread(target=self.maintain)
+        self.engine_thread.daemon = True
         self.stop_flag = threading.Event()
 
     def start(self):
@@ -44,6 +40,7 @@ class Scheduler(object):
         self.stop_flag.clear()
         self.vm_mgr_thread.start()
         self.engine_thread.start()
+        self.engine_thread.join()
 
     def stop(self):
         POOL.terminate()
@@ -52,7 +49,6 @@ class Scheduler(object):
     def engine(self):
         for job in self.job.jobs:
             vm = self.vm_queue.get()
-            #vm = self.vm_mgr.find_vm(self.job.cfg.vms.split(','))
             task = Task(self.job.cfg, vm, job.name, job.path)
             print "%s" % task
             POOL.apply_async(self.job.tool.run, (task,), callback=self.job.tool.callback)
@@ -79,4 +75,4 @@ class Scheduler(object):
         log.debug("Cleaning up")
         POOL.close()
         POOL.join()
-        log.debug("Pool cloased")
+        log.debug("Pool closed")

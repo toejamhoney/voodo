@@ -52,10 +52,10 @@ class VmFactory(object):
 
     def make(self, vmname):
         vm = self.cfg.setting('guests', vmname)
-        type_, os, addr, port = vm.split(',')
-        return self.instanciate(vmname, type_, os, addr, port)
+        type_, os, addr, port, host_addr = vm.split(',')
+        return self.instanciate(vmname, type_, os, addr, port, host_addr)
 
-    def instanciate(self, name, type_, os, addr, port):
+    def instanciate(self, name, type_, os, addr, port, host_addr):
         try:
             gmodule = import_module('guests.%s' % type_)
         except ImportError as e:
@@ -63,5 +63,5 @@ class VmFactory(object):
             sys.stderr.write("Unable to import virtual device module: %s\n" % type_)
             return None
         else:
-            sys.stdout.write("Creating: %s @ %s:%s\n" % (name, addr, port))
-            return gmodule.VirtualMachine(name, addr, port)
+            sys.stdout.write("Register VM: %s @ %s:%s -> %s\n" % (name, addr, port, host_addr))
+            return gmodule.VirtualMachine(name, addr, port, host_addr)

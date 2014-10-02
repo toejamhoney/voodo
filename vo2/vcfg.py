@@ -88,7 +88,6 @@ class Config(object):
         return ns
 
     def __getattr__(self, item):
-        print item
         if item.startswith('__'):
             if item == '__getstate__':
                 raise AttributeError

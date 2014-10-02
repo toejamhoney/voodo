@@ -1,6 +1,5 @@
 import os
 import sys
-from time import sleep
 
 from catalog.samples import Sample
 
@@ -19,7 +18,7 @@ class Task(object):
         self.cfg = cfg
         self.vm = vm
         self.errors = []
-        self.log = None
+        self.logfile = None
 
     def init(self):
         try:
@@ -27,7 +26,7 @@ class Task(object):
         except AttributeError:
             logpath = os.path.join(self.cfg.log, self.cfg.name, "%s.log" % self.vm.name)
         try:
-            self.log = open(logpath, 'w')
+            self.logfile = open(logpath, 'w')
         except IOError:
             sys.stderr.write("Unable to create log file: %s\n" % logpath)
             return False
@@ -35,7 +34,7 @@ class Task(object):
             return True
 
     def setup_vm(self, suffix=''):
-        #self.vm.restore(self.cfg.snapshot)
+        self.vm.restore(self.cfg.snapshot)
         try:
             self.vm.start(os.path.join(self.cfg.pcap, self.cfg.name, '%s%s.pcap' % (self.sample.name, suffix)))
         except AttributeError:
@@ -57,13 +56,26 @@ class Task(object):
             return rv
 
     def complete(self):
-        if self.log:
-            if self.errors:
-                for e in self.errors:
-                    self.log.write(e)
-            self.log.close()
         if self.vm:
             self.vm.release()
+
+    def close_log(self):
+        if self.logfile:
+            for e in self.errors:
+                self.logfile.write(e)
+            self.log("\n-- END LOG --\n")
+            self.logfile.close()
+
+    def log(self, msg):
+        try:
+            self.logfile.write(msg)
+        except IOError as err:
+            sys.stderr.write("Logging error: %s\n" % err)
+        except AttributeError:
+            sys.stderr.write(msg)
+            sys.stderr.flush()
+        else:
+            self.logfile.flush()
 
     def __str__(self):
         try:

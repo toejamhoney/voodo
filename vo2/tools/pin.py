@@ -1,22 +1,47 @@
-import sys
-import os
-import traceback
 import logging as log
-from threading import Thread
-from Queue import Queue, Empty
+import os
+import sys
 
-from time import sleep
+from catalog.samples import Sample
 
 
-def read_file(filename):
-    try:
-        fin = open(filename, 'r')
-    except IOError as e:
-        sys.stderr.write("%s\n" % e)
-    else:
-        rv = fin.read()
-        fin.close()
-        return rv
+def analyze(task, pincmd, bincmd, execution_time, suffix):
+    log.info('%s running %s for %s seconds' % (task.vm.name, suffix, execution_time))
+    task.log("\tLYZER TIME: %s\n" % execution_time)
+
+    if not task.vm.guest:
+        log.debug("Setting up VM: %s" % task.vm.name)
+        task.log("\tLYZER setting up VM: %s\n" % task.vm.name)
+        task.setup_vm(suffix=".%s" % suffix)
+
+    log.debug("Loading sample")
+    task.log("\tLYZER loading sample: %s\n" % task.sample.name)
+    if not task.vm.winscp_push(task.sample.path, task.cfg.guestworkingdir + "\\"):
+        log.error("Failed to push sample: %s -> %s\n" % (task.sample.path, task.cfg.guestworkingdir))
+        task.log("\tLYZER failed to push sample: %s -> %s\n" % (task.sample.path, task.cfg.guestworkingdir))
+        task.teardown_vm()
+        return task
+
+    bincmd += '"%s\\%s"' % (task.cfg.guestworkingdir, task.sample.name)
+    cmd = ' -- '.join([pincmd, bincmd])
+
+    log.debug("\nEXECUTE on guest: %s\n" % cmd)
+    task.log("\tLYZER execute: %s\n" % cmd)
+    rv = task.vm.guest.execute(cmd, execution_time, True, task.cfg.guestworkingdir)
+    log.debug("\nRETURNED: %s" % rv)
+    task.log("\tLYZER retval: %s\n" % rv)
+
+    src = '\\'.join([task.cfg.guestworkingdir, task.cfg.pinlog])
+    dst = os.path.join(task.cfg.outputdir, task.cfg.name, '"%s.%s.out"' % (task.sample.name, suffix))
+    log.debug("\nPULLING PIN output:\n%s\t->\t%s\n" % (src, dst))
+    task.log("\tLYZER pulls from: %s\n\tLYZER pulls to: %s\n" % (src, dst))
+    rv = task.vm.winscp_pull(src, dst)
+    if not rv:
+        task.errors.append('Failed to pull pin log from guest: %s -> %s\n' % (src, dst))
+        sys.stderr.write("Failed to pull pin log from guest: %s -> %s\n" % (src, dst))
+
+    task.log("\tLYZER no VM is a match. Tearing it down\n\n")
+    task.teardown_vm()
 
 
 def run(task):
@@ -34,77 +59,39 @@ def run(task):
 
     spoofs = task.cfg.spoofs.split(',')
 
-    for s in spoofs:
-        log.info('%s running %s' % (task.vm.name, s))
+    task.log("RUN TASK: %s\n\tPINCMD: %s\n\tSPOOFS:%s\n" % (task.sample.name, pincmd, spoofs))
 
-        if not task.vm.guest:
-            log.debug("Setting up VM: %s" % task.vm.name)
-            task.setup_vm(suffix=".%s" % s)
+    try:
+        execution_time = int(task.cfg.exectime)
+    except ValueError:
+        log.error("Run 'exectime' not set in cfg. Exiting.")
+        sys.exit(0)
 
-        log.debug("Loading sample")
-        if not task.vm.winscp_push(task.sample.path, task.cfg.guestworkingdir + "\\"):
-            log.error("Failed to push sample: %s -> %s\n" % (task.sample.path, task.cfg.guestworkingdir))
-            task.teardown_vm()
-            return task
-
-        try:
-            execution_time = int(task.cfg.exectime)
-        except ValueError:
-            execution_time = 30
-
-        bincmd = ''
-        if 'pdf' in task.sample.type.lower():
-            bincmd = '"%s" ' % task.cfg.pdfreader
-            execution_time *= 3
-        elif 'dll' in task.sample.type.lower():
+    if task.sample.type is Sample.PDF:
+        execution_time *= 3
+        bincmd = '"%s" ' % task.cfg.pdfreader
+        analyze(task, pincmd, bincmd, execution_time, task.cfg.pdfreader.rpartition('\\')[2])
+        task.log("RUN PDF: %s" % task.sample.name)
+    elif task.sample.type is Sample.DLL:
+        task.log("RUN DLL: %s" % task.sample.name)
+        for s in spoofs:
+            task.log("RUN SPOOF: %s %s" % (s, task.sample.name))
             bincmd = '"%s\\spoofs\\%s" ' % (task.cfg.guestworkingdir, s)
-        bincmd += '"%s\\%s"' % (task.cfg.guestworkingdir, task.sample.name)
+            log.debug("\nSpoofing: %s for %s sec\n" % (bincmd, execution_time))
+            analyze(task, pincmd, bincmd, execution_time, s)
+    elif task.sample.type is Sample.EXE:
+        bincmd = ''
+        analyze(task, pincmd, bincmd, execution_time, '')
+    elif task.sample.type is Sample.DOS:
+        log.error("Can not analyze MS-DOS executables")
+        task.log("RUN FAIL: %s, %s" % (task.cfg.sample.name, task.cfg.sample.filetype))
+    else:
+        log.error("Unrecognized file type: %s" % task.sample.filetype)
+        task.log("RUN FAIL: %s, %s" % (task.cfg.sample.name, task.cfg.sample.filetype))
 
-        cmd = ' -- '.join([pincmd, bincmd])
-        killcmd = 'taskkill /f /t /IM "%s"' % task.sample.name
-
-        log.debug(cmd)
-
-        results_qu = Queue()
-        exec_thread = Thread(target=guest_popen, args=(task.vm.guest, cmd, results_qu))
-        exec_thread.daemon = True
-        exec_thread.start()
-        log.debug('%s waiting on results. Timeout = %s' % (task.vm.name, execution_time))
-
-        try:
-            rv = results_qu.get(True, execution_time)
-        except Empty:
-            log.debug('%s execution timeout' % task.vm.name)
-            task.errors.append('\nExecution time expired: (%s) %s\n' % (task.sample.type, task.sample.name))
-        except Exception as e:
-            log.debug('%s' % traceback.format_exc())
-            log.debug('%s popen thread error: %s' % (task.vm.name, e))
-
-        log.debug('Trying to kill process')
-        rv = task.vm.guest.handle_popen(killcmd)
-        log.debug('Sent kill cmd')
-
-        if not rv[0]:
-            log.error("Error returned: %s\n%s" % (rv[1], rv[2]))
-            task.errors.extend(list(rv[1:]))
-
-        src = '\\'.join([task.cfg.guestworkingdir, task.cfg.pinlog])
-        dst = os.path.join(task.cfg.hostlogdir, task.cfg.name, '%s.%s.out' % (task.sample.name, s))
-        rv = task.vm.winscp_pull(src, dst)
-        if not rv:
-            task.errors.append('Failed to pull pin log from guest: %s -> %s\n' % (src, dst))
-            sys.stderr.write("Failed to pull pin log from guest: %s -> %s\n" % (src, dst))
-
-        task.teardown_vm()
-
+    task.log("RUN ENDS\n")
+    task.close_log()
     return task
-
-
-def guest_popen(guest, cmd, results_qu):
-    log.info('Running cmd: %s' % cmd)
-    rv = guest.handle_popen(cmd)
-    log.debug('CMD results: %s' % rv)
-    results_qu.put(rv)
 
 
 def callback(task):
