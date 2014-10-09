@@ -9,14 +9,10 @@ VMS = ['xp00', 'xp01', 'xp02', 'xp03', 'xp04']
 
 class Config(object):
 
-    def __init__(self, name=''):
-        if name:
-            self.cfg_file = os.path.join(CFG_PATH, name)
-        else:
-            self.cfg_file = os.path.join(CFG_PATH, DEFAULT_CFG)
-        self.name = name
+    def __init__(self, path):
+        self.path = path
         self.parser = SafeConfigParser(allow_no_value=True)
-        self.parsed = self.parser.read(self.cfg_file)
+        self.parsed = self.parser.read(self.path)
 
     def new_cfg(self):
         for section in sorted([s for s in dir(self) if s.startswith('s_')]):
@@ -83,6 +79,7 @@ class Config(object):
         ns = Namespace()
         for s in self.parser.sections():
             for name, value in self.parser.items(s):
+                value = value.rstrip(r'\/')
                 print "%s: %s" % (name, value)
                 setattr(ns, name, value)
         return ns
@@ -105,7 +102,7 @@ class Config(object):
             return fin.read()
 
     def __str__(self):
-        return self.cfg_file
+        return self.path
 
 
 class Namespace(object):

@@ -2,9 +2,10 @@ import sys
 import logging
 from time import sleep, time
 from xmlrpclib import ServerProxy
+from threading import Thread
+from Queue import Full
 
 from vlibs.proc_mgmt import ProcMgr
-
 
 CMD = r'/usr/bin/VBoxManage'
 EXEDIR = r'c:\remote\bin'
@@ -12,6 +13,12 @@ USER = 'logger'
 KEY = r'c:\remote\keys\voo_priv.ppk'
 PSCP = r'c:\remote\bin\pscp.exe'
 WINSCP = r'c:\remote\bin\winscp.exe'
+
+UNKNOWN = -1
+POWEROFF = 0
+SAVED = 1
+RUNNING = 2
+ABORTED = 3
 
 
 class VirtualMachine(object):
@@ -30,47 +37,70 @@ class VirtualMachine(object):
         self.msgs = None
         self.guest = None
         self.sniff = False
-        self.state = None
+        self.state = -1
+        self.state_str = ''
+        self.busy = False
 
-    def start(self, pcap=''):
+    def start(self):
         self.debug("Start %s [%s:%s]" % (self.name, self.addr, self.port))
+
         self.update_state()
-        if self.state != 'saved':
-            pass
-            self.restore()
+        self.debug("current state: %s" % self.state_str)
+
+        if self.state is RUNNING:
+            self.debug("needs to be shut down")
+            return False
+
         cmd = [CMD, 'startvm', self.name]
-        if self.state != 'running' and self.proc.exec_quiet(cmd) != 0:
+        self.debug("starting: %s" % cmd)
+        if self.proc.exec_quiet(cmd) != 0:
             self.error('start failure: %s' % cmd)
-            sys.exit(1)
-        sleep(1)
-        if pcap:
-            self.stop_sniff()
-            self.set_pcap(pcap)
-            self.start_sniff()
-        sleep(1)
-        while not self.ping_agent():
-            sleep(1)
+            return False
+        sleep(.5)
+
+        if not self.wait_agent():
+            return False
+
+        self.debug("agent online")
+        return True
+
+    def wait_agent(self):
+        self.debug("waiting for agent to come online")
+        t = Thread(target=self._wait_agent)
+        t.daemon = True
+        t.start()
+        t.join(30)
+        if t.is_alive():
+            self.debug("timeout waiting for agent")
+            self.poweroff()
+            return False
+        return True
 
     def poweroff(self):
+        self.debug("powering off")
+        rv = True
         cmd = [CMD, 'controlvm', self.name, 'poweroff']
         if self.proc.exec_quiet(cmd) != 0:
             self.error('poweroff error: %s' % cmd)
-            sys.exit(1)
-        if self.sniff:
-            self.stop_sniff()
+            rv = False
+        sleep(1)
         self.guest = None
+        return rv
 
     def restore(self, name=''):
+        self.debug("Checking state for restore")
         self.update_state()
-        if self.state == 'running':
-            self.poweroff()
-        cmd = [CMD, 'snapshot', self.name]
-        if name:
-            cmd.extend(['restore', name])
-        else:
-            cmd.append('restorecurrent')
-        if self.proc.exec_quiet(cmd) != 0:
-            sys.exit(1)
+        if self.state is POWEROFF or self.state is ABORTED:
+            self.debug("Attempting restore")
+            cmd = [CMD, 'snapshot', self.name]
+            if name:
+                cmd.extend(['restore', name])
+            else:
+                cmd.append('restorecurrent')
+            self.debug("%s" % cmd)
+            if self.proc.exec_quiet(cmd) != 0:
+                return False
+        return True
 
     def take_snap(self, name=''):
         if not name:
@@ -88,35 +118,55 @@ class VirtualMachine(object):
 
     def update_state(self):
         cmd = [CMD, 'showvminfo', self.name, '--machinereadable']
+        self.debug("update state: %s" % cmd)
         pid = self.proc.execute(cmd)
         out, err = self.proc.get_output(pid)
         if not out:
-            self.state = None
-            return False
+            self.state = UNKNOWN
+            self.state_str = 'unknown'
+            return self.state
         for line in out.split('\n'):
             if line.startswith('VMState='):
-                self.state = line.partition('=')[2].strip('"')
-                break
+                st = line.partition('=')[2].strip('"')
+                if st == 'running':
+                    self.state = RUNNING
+                    self.state_str = 'running'
+                elif st == 'saved':
+                    self.state = SAVED
+                    self.state_str = 'saved'
+                elif st == 'poweroff':
+                    self.state = POWEROFF
+                    self.state_str = 'poweroff'
+                elif st == 'aborted':
+                    self.state = ABORTED
+                    self.state_str = 'aborted'
+                return self.state
 
     def start_sniff(self):
         cmd = [CMD, 'controlvm', self.name, 'nictrace1', 'on']
+        self.debug("start pcap: %s" % cmd)
         if self.proc.exec_quiet(cmd) != 0:
             self.error('start_sniff error: %s' % cmd)
-            sys.exit(1)
+            return False
         self.sniff = True
+        return True
 
     def stop_sniff(self):
         cmd = [CMD, 'controlvm', self.name, 'nictrace1', 'off']
+        self.debug("stop pcap: %s" % cmd)
         if self.proc.exec_quiet(cmd) != 0:
             self.error('stop_sniff error: %s' % cmd)
-            sys.exit(1)
+            return False
         self.sniff = False
+        return True
 
     def set_pcap(self, filepath):
         cmd = [CMD, 'controlvm', self.name, 'nictracefile1', filepath]
+        self.debug("set_pcap: %s" % cmd)
         if self.proc.exec_quiet(cmd) != 0:
             self.error('set_pcap error: %s' % cmd)
-            sys.exit(1)
+            return False
+        return True
 
     def reset(self):
         self.poweroff()
@@ -132,6 +182,11 @@ class VirtualMachine(object):
         else:
             return True
 
+    def _wait_agent(self):
+        while not self.ping_agent():
+            self.ping_agent()
+            sleep(.5)
+
     def ping_agent(self):
         if self.connect():
             return self.guest.ping()
@@ -141,45 +196,42 @@ class VirtualMachine(object):
         :type self.msgs: multiprocessing.Queue
         """
         try:
-            self.msgs.put(self.name)
-        except AttributeError:
+            self.msgs.put(self.name, True, 60)
+        except (AttributeError, Full):
             sys.stderr.write("%s: unable to signal completion to VM manager. Messages queue not set\n" % self.name)
+
+    def guest_cmd(self, cmd):
+        self.debug("guest_cmd: %s\n" % cmd)
+        rv, out, err = self.guest.execute(cmd)
+        if out:
+            self.debug(out)
+        if err:
+            self.error(err)
+        return rv
 
     def winscp_push(self, src, dst):
         self.debug("winscp_push: %s -> %s\n" % (src, dst))
         cmd = [EXEDIR + '\\winscp.exe',
                '/console', '/command',
+               '"option confirm off"',
+               '"option batch abort"',
                '"open %s@%s -hostkey=* -privatekey=%s"' % (USER, self.host_addr, KEY),
                '"get %s %s"' % (src, dst),
                '"exit"']
         cmd = ' '.join(cmd)
-        self.debug("winscp_push: %s\n" % cmd)
-        try:
-            self.guest.execute(cmd)
-        except Exception as e:
-            print("PUSH ERR: %s" % e)
-            return False
-        else:
-            return True
+        return self.guest_cmd(cmd)
 
     def winscp_pull(self, src, dst):
         self.debug("winscp_pull: %s -> %s\n" % (src, dst))
         cmd = [EXEDIR + '\\winscp.exe',
                '/console', '/command',
+               '"option confirm off"',
+               '"option batch abort"',
                '"open %s@%s -hostkey=* -privatekey=%s"' % (USER, self.host_addr, KEY),
-               '"put -transfer=binary %s %s"' % (src, dst),
+               '"put -nopreservetime -transfer=binary %s %s"' % (src, dst),
                '"exit"']
         cmd = ' '.join(cmd)
-        self.debug("winscp_pull: %s\n" % cmd)
-        return self.guest.execute(cmd)
-
-    def winscp_script(self, script):
-        if not self.guest:
-            return False
-        cmd = [EXEDIR + '\\winscp.com',
-               '/script=%s' % script]
-        self.debug(cmd)
-        return self.guest.execute(cmd)
+        return self.guest_cmd(cmd)
 
     def pscp_pull(self, src, dst):
         if not self.guest:
@@ -210,8 +262,11 @@ class VirtualMachine(object):
         return self.guest.execute(cmd)
 
     def error(self, msg):
-        logging.error('%s(%s:%s) %s' % (self.name, self.addr, self.port, msg))
+        logging.error('%s(%s:%s),%s: %s' % (self.name, self.addr, self.port, self.state_str, msg))
 
     def debug(self, msg):
-        logging.debug('%s(%s:%s) %s' % (self.name, self.addr, self.port, msg))
+        logging.debug('%s(%s:%s),%s: %s' % (self.name, self.addr, self.port, self.state_str, msg))
 
+    def __str__(self):
+        self.update_state()
+        return "%s, %s" % (self.name, self.state_str)

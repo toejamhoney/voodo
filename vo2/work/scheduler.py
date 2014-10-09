@@ -46,9 +46,18 @@ class Scheduler(object):
         POOL.terminate()
         self.cleanup()
 
+    def get_vm(self):
+        vm = None
+        while not vm:
+            try:
+                vm = self.vm_queue.get(True, 300)
+            except Empty:
+                self.vm_mgr.reset_vms()
+        return vm
+
     def engine(self):
         for job in self.job.jobs:
-            vm = self.vm_queue.get()
+            vm = self.get_vm()
             task = Task(self.job.cfg, vm, job.name, job.path)
             print "%s" % task
             POOL.apply_async(self.job.tool.run, (task,), callback=self.job.tool.callback)

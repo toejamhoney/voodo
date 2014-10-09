@@ -1,9 +1,5 @@
 import sys
 
-root_cmd = '/usr/bin/VBoxManage'
-cmds = {'showvminfo': [root_cmd, 'showvminfo', '', '--machinereadable'],
-        'list': [root_cmd, 'list', 'vms'], }
-
 
 class GuestPool(object):
 
@@ -25,10 +21,9 @@ class GuestPool(object):
             sys.stderr.write("Attempt to release unknown VM: %s\n" % name)
 
     def __str__(self):
-        string = 'Pool:'
-        for vm in self.ready:
-            string += vm + ": " + str(self.ready.get(vm)) + ", "
-        return string
+        guests = ['Guest Pool']
+        guests.extend(['%s: Ready == %s' % (vm, self.ready.get(vm)) for vm in self.pool])
+        return '\n'.join(guests)
 
 
 if __name__ == '__main__':
