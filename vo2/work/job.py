@@ -11,37 +11,43 @@ class Job(object):
         self.tool = None
 
     def setup(self):
-        self.import_tool()
+        if not self.import_tool():
+            return False
 
-        dirs = [os.path.join(self.cfg.log, self.cfg.name),
-                os.path.join(self.cfg.outputdir, self.cfg.name),
-                os.path.join(self.cfg.pcap, self.cfg.name)]
+        ver = 0
+        suffix = "-vo2-%03d"
+        self.cfg.name = self.make_log_dir(self.cfg.log, self.cfg.name, suffix, ver)
+        if not self.cfg.name:
+            sys.stderr.write("Failed to create logging directories in: %s\n" % self.cfg.log)
+            return False
 
-        old_mask = os.umask(0007)
-
-        for d in dirs:
-            if d and d != self.cfg.name:
-                try:
-                    os.makedirs(d, 0770)
-                except OSError as e:
-                    if e.errno == 17:
-                        # Exists
-                        pass
-                    else:
-                        sys.stderr.write("Failed to create logging directories: %s\n\t%s" % (d, e))
-                        sys.exit(0)
-
-        os.umask(old_mask)
+        return True
 
     def import_tool(self):
         try:
             self.tool = import_module(self.cfg.host_tool)
         except ImportError as e:
             sys.stderr.write("Job failed to import specified tool: %s\n\t%s\n" % (self.cfg.host_tool, e))
-            sys.exit(0)
+            return False
+        else:
+            return True
 
-
-if __name__ == "__main__":
-    sys.path.append('/Users/honey/src/Voodo')
-    import vo2.vlibs.scandir
-    j = Job(vo2.vlibs.scandir.scandir(sys.argv[1]), sys.argv[2])
+    def make_log_dir(self, dir_, name, sfx, ver):
+        made = False
+        old_mask = os.umask(0007)
+        while not made:
+            n = name + sfx % ver
+            logdir = os.path.join(dir_, n)
+            try:
+                os.makedirs(logdir, 0770)
+            except OSError as e:
+                if e.errno is 17:
+                    ver += 1
+                else:
+                    n = ''
+                    sys.stderr.write("Job error making log dir: %s\n" % e)
+                    break
+            else:
+                made = True
+        os.umask(old_mask)
+        return n

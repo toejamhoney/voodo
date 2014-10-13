@@ -48,6 +48,7 @@ class Task(object):
             if self.vm.update_state() is vbox.RUNNING:
                 self.vm.poweroff()
             self.log("TASK Initial VM State: %s" % self.vm)
+            self.log("TASK Sample: %s" % self.sample)
             return True
 
     def setup_vm(self, suffix=''):
@@ -62,7 +63,7 @@ class Task(object):
             self.vm.poweroff()
 
         if self.vm.state is not vbox.SAVED:
-            self.log("TASK: Setupt Restoring VM")
+            self.log("TASK: Setup Restoring VM")
             self.vm.restore(self.cfg.snapshot)
 
         self.log("TASK: Starting, %s" % self.vm)

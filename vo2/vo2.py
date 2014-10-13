@@ -45,7 +45,9 @@ if __name__ == "__main__":
     vcfg_ns = vo2_cfg.namespace()
 
     job = Job(samples, job_cfg_ns)
-    job.setup()
+    if not job.setup():
+        log.error("Job setup failed. Exiting")
+        sys.exit(1)
 
     host_vms = sorted([vm.rstrip() for vm in vcfg_ns.vms.split(',')])
     vm_settings = dict(zip(host_vms, [getattr(vcfg_ns, vm) for vm in host_vms]))

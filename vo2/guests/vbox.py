@@ -225,8 +225,8 @@ class VirtualMachine(object):
         self.debug("winscp_pull: %s -> %s\n" % (src, dst))
         cmd = [EXEDIR + '\\winscp.exe',
                '/console', '/command',
-               '"option confirm off"',
-               '"option batch abort"',
+               #'"option confirm off"',
+               #'"option batch abort"',
                '"open %s@%s -hostkey=* -privatekey=%s"' % (USER, self.host_addr, KEY),
                '"put -nopreservetime -transfer=binary %s %s"' % (src, dst),
                '"exit"']
@@ -269,4 +269,4 @@ class VirtualMachine(object):
 
     def __str__(self):
         self.update_state()
-        return "%s, %s" % (self.name, self.state_str)
+        return "%s[%s:%s], %s => Host: %s" % (self.name, self.addr, self.port, self.state_str, self.host_addr)

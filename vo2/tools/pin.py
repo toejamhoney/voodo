@@ -1,42 +1,42 @@
 import logging as log
 import os
 import sys
-
+from time import sleep
 from catalog.samples import Sample
 
 
 def analyze(task, pincmd, bincmd, execution_time, suffix='pe32'):
-    task.log("\tLYZER BEGIN\n\tLYZER Execution time: %s s\n" % execution_time)
-    task.log("\tLYZER setting up VM: %s\n" % task.vm.name)
+    task.log("LYZER BEGIN\n\tLYZER Execution time: %s s\n" % execution_time)
+    task.log("LYZER setting up VM: %s\n" % task.vm.name)
     if not task.setup_vm(suffix=".%s" % suffix):
-        task.log("\tLYZER error setting up VM, ending analysis run\n")
-        log.error("\tLYZER error setting up VM, ending analysis run\n")
+        task.log("LYZER error setting up VM, ending analysis run\n")
+        log.error("LYZER error setting up VM, ending analysis run\n")
         return
-    task.log("\tLYZER VM running\n")
+    task.log("LYZER VM running\n")
 
     bincmd += '"%s\\%s"' % (task.cfg.guestworkingdir, task.sample.name)
     cmd = ' -- '.join([pincmd, bincmd])
     rv = task.run_sample(cmd, execution_time, task.cfg.guestworkingdir)
     if not rv:
-        task.log("\tLYZER execution on guest failure\n\tLYZER Tear Down VM: %s\n" % task.vm)
+        task.log("LYZER execution on guest failure\n\tLYZER Tear Down VM: %s\n" % task.vm)
         task.teardown_vm()
         return
 
     src = '\\'.join([task.cfg.guestworkingdir, task.cfg.pinlog])
     dst = '%s.%s.txt' % (task.sample.name, suffix)
-    task.log("\tLYZER pulls from: %s\n\tLYZER pulls to: %s\n" % (src, dst))
+    task.log("LYZER pulls from: %s\n\tLYZER pulls to: %s\n" % (src, dst))
     task.retval = task.get_results(src, dst)
     if not task.retval:
         log.error("Failed to pull pin log from guest: %s -> %s\n" % (src, dst))
-        src = '\\'.join([task.cfg.guestworkingdir, 'pin.txt'])
+        src = '\\'.join([task.cfg.guestworkingdir, 'pin.log'])
         dst = dst.replace(".txt", ".error.txt")
-        task.log("\tLYZER error in pulling log file. Trying pin.txt error file\n")
-        task.log("\tLYZER pulls from: %s\n\tLYZER pulls to: %s\n" % (src, dst))
+        task.log("LYZER error in pulling log file. Trying pin.txt error file\n")
+        task.log("LYZER pulls from: %s\n\tLYZER pulls to: %s\n" % (src, dst))
         task.get_results(src, dst)
 
-    task.log("\tLYZER Tear Down VM:%s\n" % task.vm.name)
+    task.log("LYZER Tear Down VM:%s\n" % task.vm.name)
     task.teardown_vm()
-    task.log("\tLYZER END\n\n")
+    task.log("LYZER END\n\n")
 
 
 def run(task):
