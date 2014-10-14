@@ -54,8 +54,9 @@ class GuestManager(object):
             self.release_vm(msg)
 
     def reset_vms(self):
-        for vm in self.machines:
-            if not vm.busy:
+        for name in self.machines:
+            vm = self.vm_map.get(name)
+            if vm and not vm.busy:
                 self.msgs.put(vm)
 
 
